@@ -383,16 +383,15 @@ install_flatpak_packages() {
 
 
 configure_dnf(){
-    echo "-------------------------------------------------------"
-    echo "Configuring dnf..."
-    echo "-------------------------------------------------------"
-
     if [[ "$distro" != "fedora" ]]; then
         echo "Error, current distribution is not Fedora"
         echo "Exiting..."
         exit 1
     fi
 
+    echo "-------------------------------------------------------"
+    echo "Configuring dnf..."
+    echo "-------------------------------------------------------"
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
         echo "The values were already present in /etc/dnf/dnf.conf"
