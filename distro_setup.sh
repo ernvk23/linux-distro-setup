@@ -23,7 +23,6 @@ packages_deb=(
     "gettext"
     "cmake" 
     "build-essential"
-    "python3-neovim"
 )
 
 flatpaks=(
