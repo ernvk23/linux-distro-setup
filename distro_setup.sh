@@ -96,6 +96,9 @@ zshrc_config() {
     local zshrc_path="$HOME/.zshrc"
     local zshrc_content=$(cat <<- 'EOF'
 
+# Set vim keybindings
+bindkey -v
+
 # Do not keep history duplicates
 setopt histignorealldups sharehistory
 
