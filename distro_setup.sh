@@ -94,7 +94,7 @@ is_flatpak_available() {
 # Function to populate the .zshrc file
 zshrc_config() {
     local zshrc_path="$HOME/.zshrc"
-    local zshrc_content=$(cat <<- EOF
+    local zshrc_content=$(cat <<- 'EOF'
 autoload -Uz promptinit
 promptinit
 prompt adam1
@@ -150,7 +150,7 @@ EOF
 
 zplug_config() {
     local zshrc_path="$HOME/.zshrc"
-    local zplug_content=$(cat <<- EOF
+    local zplug_content=$(cat <<- 'EOF'
 source ~/.zplug/init.zsh
 #zplug "plugins/git", from:oh-my-zsh
 #zplug "plugins/sudo", from:oh-my-zsh
@@ -419,7 +419,7 @@ configure_governor(){
     local script_name="change_governor.sh"
     local script_dir="$HOME/.startup_scripts"
     local script_path="$script_dir/$script_name"
-    local script_content=$(cat <<- EOF
+    local script_content=$(cat <<- 'EOF'
 #!/usr/bin/bash
 echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 EOF
@@ -428,7 +428,7 @@ EOF
     local service_name="change_governor.service"
     local service_dir="/etc/systemd/system"
     local service_path="$service_dir/$service_name"
-    local service_content=$(envsubst <<- EOF
+    local service_content=$(envsubst <<- 'EOF'
 [Unit]
 Description=Change governor to performance
 
