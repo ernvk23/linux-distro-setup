@@ -205,6 +205,7 @@ install_packages() {
         case "$choice" in
             y|Y)
                 sudo $package_manager install -y "${to_install[@]}" #> /dev/null
+                suggest_restart=true
                 ;;
             *)
                 echo "Skipping packages installations."
@@ -214,63 +215,58 @@ install_packages() {
 }
 
 
-setup_zshrc(){
+customize_terminal(){
     echo "-------------------------------------------------------"
-    echo "Configuring .zshrc..."
+    echo "Customizing terminal..."
     echo "-------------------------------------------------------"
-    
-    if ! is_installed "zsh"; then
-        echo "Operation failed, make sure you have zsh installed and re-run the script again."
-        echo "Exiting..."
-        exit 1
-    fi
-    
-    if [ -s ~/.zshrc ]; then
-        echo "The file .zshrc already existed and has a configuration. Skipping."
-        return 0
-    fi
 
-    zshrc_config
-}
-
-
-setup_zplug(){
-    echo "-------------------------------------------------------"
-    echo "Configuring zplug..."
-    echo "-------------------------------------------------------"
-    
-    if ! is_installed "zsh" && ! is_installed "curl" ; then
+    if ! is_installed "zsh" && ! is_installed "curl"; then
         echo "Operation failed, make sure you have zsh and curl installed and re-run the script again."
         echo "Exiting..."
         exit 1
     fi
+
+    echo "-------------------------------------------------------"
+    echo "Configuring .zshrc..."
+    echo "-------------------------------------------------------"
+    
+    if [ -s ~/.zshrc ]; then
+        echo "The file .zshrc already existed and has a configuration. Skipping."
+    else
+        zshrc_config
+    fi
+    
+    echo "-------------------------------------------------------"
+    echo "Configuring zplug..."
+    echo "-------------------------------------------------------"
 
     if [ -d ~/.zplug ]; then
         echo "The directory .zplug already existed. Skipping."
     else
         curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
     fi
-    
-      
-    if [ ! -f ~/.zshrc ]; then
-        echo "Wasn't possible to add zplug config to .zshrc, there is no .zshrc file"
-        echo "make sure you have a .zshrc file and re-run the script again."
-        echo "Exiting..."
-        exit 1
-    fi
-    
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
         echo "Zplug was already sourced in ~/.zshrc. Please verify manually. Skipping."
-        return 0
+    else
+        zplug_config
     fi
-
-    zplug_config
+    
+    echo "-------------------------------------------------------"
+    echo "Setting shell to zsh..."
+    echo "-------------------------------------------------------"
+    
+    if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
+        echo "Zsh was already set as the default shell. Skipping."
+    else
+        chsh -s $(which zsh)
+        suggest_restart=true
+    fi
 }
 
 
 download_fonts(){
     echo "-------------------------------------------------------"
-    echo "Downloading Caskaydia Nerd Font..."
+    echo "Adding Caskaydia Nerd Font to system fonts..."
     echo "-------------------------------------------------------"
 
     if ! is_installed "curl" && ! is_installed "unzip" ; then
@@ -294,29 +290,6 @@ download_fonts(){
     rm ~/$font_name.zip
     # Update the font cache
     sudo fc-cache -f -v > /dev/null
-}
-
-
-set_shell_to_zsh(){
-    echo "-------------------------------------------------------"
-    echo "Setting shell to zsh..."
-    echo "-------------------------------------------------------"
-    
-    if ! is_installed "zsh"; then
-        echo "Operation failed, make sure you have zsh installed and re-run the script again."
-        echo "Exiting..."
-        exit 1
-    fi
-
-    if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
-      echo "Zsh was already set as the default shell. Skipping."
-      return 0
-    fi
-    
-    # Set default shell for USER as zsh
-    chsh -s $(which zsh)
-    suggest_restart=true
-
 }
 
 
@@ -356,7 +329,11 @@ install_flatpak_packages() {
 }
 
 
-configure_dnf(){
+fedora_system_setup(){
+    echo "-------------------------------------------------------"
+    echo "Fedora system setup..."
+    echo "-------------------------------------------------------"
+    
     if [[ "$distro" != "fedora" ]]; then
         echo "Error, current distribution is not Fedora"
         echo "Exiting..."
@@ -369,25 +346,14 @@ configure_dnf(){
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
         echo "The values were already present in /etc/dnf/dnf.conf"
-        return 0
+    else
+        echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf
+        suggest_restart=true
     fi
 
-    # Append the values if they are not present
-    echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf
-    suggest_restart=true
-}
-
-
-configure_governor(){
     echo "-------------------------------------------------------"
     echo "Setting governor mode to performance..."
     echo "-------------------------------------------------------"
-
-    if [[ "$distro" != "fedora" ]];then
-        echo "Error, current distribution is not Fedora"
-        echo "Exiting..."
-        exit 1
-    fi
     
     local script_name="change_governor.sh"
     local script_dir="$HOME/.startup_scripts"
@@ -445,19 +411,18 @@ EOF
     suggest_restart=true
 }
 
-check_supported_distros(){
-    for supported_distro in "${supported_distros[@]}"; do
-        if [[ "$distro" == "$supported_distro" ]]; then
-            return 0  # Supported distribution found
-        fi
-    done
-
-    echo "Unsupported distribution."
-    echo "Exiting..."
-    exit 1
-}
-
 main(){
+    check_supported_distros(){
+        for supported_distro in "${supported_distros[@]}"; do
+            if [[ "$distro" == "$supported_distro" ]]; then
+                return 0  # Supported distribution found
+            fi
+        done
+
+        echo "Unsupported distribution."
+        echo "Exiting..."
+        exit 1
+    }
     # Do not run script if distro is not supported.
     check_supported_distros
     echo "==================================================================="
@@ -485,22 +450,17 @@ main(){
     case "$selection" in
         1)
             install_packages
-            setup_zshrc
-            setup_zplug
+            customize_terminal
             download_fonts
-            set_shell_to_zsh
             ;;
         2)
             install_packages
-            setup_zshrc
-            setup_zplug
+            customize_terminal
             download_fonts
-            set_shell_to_zsh
             install_flatpak_packages
             ;;
         3)
-            configure_dnf
-            configure_governor
+            fedora_system_setup
             ;;
         *)
             echo "Invalid selection."
