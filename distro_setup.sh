@@ -95,23 +95,14 @@ is_flatpak_available() {
 zshrc_config() {
     local zshrc_path="$HOME/.zshrc"
     local zshrc_content=$(cat <<- 'EOF'
-autoload -Uz promptinit
-promptinit
-prompt adam1
 
+# Do not keep history duplicates
 setopt histignorealldups sharehistory
-
-# Use vim keybindings even if our EDITOR is set to vi
-bindkey -v
 
 # Keep 1000 lines of history within the shell and save it to ~/.zsh_history:
 HISTSIZE=5000
 SAVEHIST=5000
 HISTFILE=~/.zsh_history
-
-# Use modern completion system
-autoload -Uz compinit
-compinit
 
 # Aliases
 alias ls='ls --color=auto'
@@ -119,29 +110,6 @@ alias ll='ls -lah --color=auto'
 alias grep='grep --color=auto'
 alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
 alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
-
-zstyle ':completion:*' auto-description 'specify: %d'
-zstyle ':completion:*' completer _expand _complete _correct _approximate
-zstyle ':completion:*' format 'Completing %d'
-zstyle ':completion:*' group-name ''
-zstyle ':completion:*' menu select=2
-eval "$(dircolors -b)"
-zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
-zstyle ':completion:*' list-colors ''
-zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
-zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
-zstyle ':completion:*' menu select=long
-zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
-zstyle ':completion:*' use-compctl false
-zstyle ':completion:*' verbose true
-
-zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
-zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
-
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-bindkey "$terminfo[kcuu1]" history-substring-search-up
-bindkey "$terminfo[kcud1]" history-substring-search-down
 EOF
 )
     echo "$zshrc_content" > "$zshrc_path"
@@ -162,6 +130,12 @@ zplug "romkatv/powerlevel10k, as:theme, depth:1"
 #zplug "zsh-users/zsh-completions"
 #zplug "junegunn/fzf"
 #zplug "themes/robbyrussell", from:oh-my-zsh, as:theme   # Theme
+
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey "$terminfo[kcuu1]" history-substring-search-up
+bindkey "$terminfo[kcud1]" history-substring-search-down
+
 
 # zplug - install/load new plugins when zsh is started or reloaded
 if ! zplug check; then
@@ -505,7 +479,7 @@ main(){
     echo "  . configure dnf for faster downloads (*)"
     echo "  . create startup service for setting the governor to performance (*)"
     echo "==================================================================="
-    echo "(*) - if not exist/set/configured"
+    echo "(*) - if not exists/set/configured"
 
     read -p "Enter the option/s you would like to perform (1, 2 or 3): " selection
     case "$selection" in
