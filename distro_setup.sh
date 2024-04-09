@@ -234,26 +234,44 @@ customize_terminal(){
     echo "-------------------------------------------------------"
     
     if [ -s ~/.zshrc ]; then
-        echo "The file .zshrc already existed and has a configuration. Skipping."
+        read -p "The file ~/.zhsrc already existed and had a configuration, would you like to replace it?: ${to_install[*]}. Proceed? (y/N) " choice
+        case "$choice" in
+            y|Y)
+                # It already replaces the existing one
+                zshrc_config
+                ;;
+            *)
+                echo "Skipping."
+                ;;
+        esac
     else
         zshrc_config
     fi
+
     
     echo "-------------------------------------------------------"
     echo "Configuring zplug..."
     echo "-------------------------------------------------------"
 
     if [ -d ~/.zplug ]; then
-        echo "The directory .zplug already existed. Skipping."
-    else
-        curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
+        read -p "The directory ~/.zplug already existed, would you like to replace it?: ${to_install[*]}. Proceed? (y/N) " choice
+        case "$choice" in
+            y|Y)
+                rm -rf ~/.zplug
+                curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
+                ;;
+            *)
+                echo "Skipping."
+                ;;
+        esac
     fi
+    
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
         echo "Zplug was already sourced in ~/.zshrc. Please verify manually. Skipping."
     else
         zplug_config
     fi
-    
+
     echo "-------------------------------------------------------"
     echo "Setting shell to zsh..."
     echo "-------------------------------------------------------"
