@@ -18,7 +18,7 @@ packages_fedora=(
 )
 
 packages_deb=(
-    # Neovim build prerequisites
+    # Neovim build debian prerequisites
     # https://github.com/neovim/neovim/blob/master/BUILD.md#build-prerequisites
     "ninja-build" 
     "gettext"
