@@ -167,8 +167,7 @@ install_packages() {
                 ;;
         esac
         if [[ "$?" -eq 0 ]]; then
-            echo "Your system has pending updates, it is advised to restart now."
-            echo "Please restart your system and re-run the script"
+            echo "Your system has pending updates, please restart your system before running the script."
             echo "Exiting..."
             exit 1
         fi
@@ -358,7 +357,7 @@ fedora_system_setup(){
     echo "-------------------------------------------------------"
     
     if [[ "$distro" != "fedora" ]]; then
-        echo "Error, current distribution is not Fedora"
+        echo "Current distribution is not Fedora"
         echo "Exiting..."
         exit 1
     fi
@@ -442,65 +441,79 @@ main(){
             fi
         done
 
-        echo "Unsupported distribution."
+        echo "The current Linux distribution is not supported."
+        echo "This script is only intended for running on Fedora, Debian and Ubuntu."
         echo "Exiting..."
         exit 1
     }
     # Do not run script if distro is not supported.
     check_supported_distros
-    echo "==================================================================="
-    echo "Options"
-    echo "-------------------------------------------------------------------"
-    echo "1- Minimal system setup"
-    echo "  . update system package manager cache"
-    echo "  . install required packages"
-    echo "  . create a default .zshrc (*)"
-    echo "  . install zplug and add zplug config to .zhsrc (*)" 
-    echo "  . download CascadiaMono fonts (manual setup is required afterwards) (*)"
-    echo "  . set zsh as default user shell (*)"
-    echo "-------------------------------------------------------------------"
-    echo "2- Full system setup"
-    echo "  . Minimal system setup (option 1)"
-    echo "  . install flatpak packages"
-    echo "-------------------------------------------------------------------"
-    echo "3- Fedora setup"
-    echo "  . configure dnf for faster downloads (*)"
-    echo "  . create startup service for setting the governor to performance (*)"
-    echo "==================================================================="
-    echo "(*) - if not exists/set/configured"
 
-    read -p "Enter the option/s you would like to perform (1, 2 or 3): " selection
-    case "$selection" in
-        1)
-            install_packages
-            customize_terminal
-            download_fonts
-            ;;
-        2)
-            install_packages
-            customize_terminal
-            download_fonts
-            install_flatpak_packages
-            ;;
-        3)
-            fedora_system_setup
-            ;;
-        *)
-            echo "Invalid selection."
+    while true; do
+        clear
+        echo "==================================================================="
+        echo "Options"
+        echo "-------------------------------------------------------------------"
+        echo "1- System setup"
+        echo "  . update system package manager cache"
+        echo "  . install required packages"
+        echo "  . create a default .zshrc (*)"
+        echo "  . install zplug and add zplug config to .zhsrc (*)" 
+        echo "  . set zsh as default user shell (*)"
+        echo "-------------------------------------------------------------------"
+        echo "2- Download CascadiaNerdMono fonts (manual setup required afterwards) (*)"
+        echo "-------------------------------------------------------------------"
+        echo "3- Install flatpak packages"
+        echo "-------------------------------------------------------------------"
+        echo "4- Fedora setup"
+        echo "  . configure dnf for faster downloads (*)"
+        echo "  . create startup service for setting the governor to performance (*)"
+        echo "-------------------------------------------------------------------"
+        echo "q- Quit"
+        echo "==================================================================="
+        echo "(*) - if not exists/set/configured"
+
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4 or q): " selection
+        case "$selection" in
+            1)
+                clear
+                install_packages
+                customize_terminal
+                ;;
+            2)
+                clear
+                download_fonts
+                ;;
+            3)
+                clear
+                install_flatpak_packages
+                ;;
+            4)
+                clear
+                fedora_system_setup
+                ;;
+            q)
+                echo "Exiting"
+                exit 0
+                ;;
+            *)
+                echo "Invalid selection."
+                ;;
+        esac
+        
+        echo "-------------------------------------------------------"
+        if "$suggest_restart"; then
+            echo "Some changes need a system restart to take effect."
+            echo "Please restart your system to finish."
             echo "Exiting..."
-            exit 1
-            ;;
-    esac
+            exit 0
+        else
+            echo "Finished!"
+        fi
+        echo "-------------------------------------------------------"
     
-    echo "-------------------------------------------------------"
-    if "$suggest_restart"; then
-        echo "Some changes need a system restart to take effect."
-        echo "Please restart your system to finish."
-        echo "Exiting..."
-    else
-        echo "Finished!"
-    fi
-    echo "-------------------------------------------------------"
+        read -p "Press Enter to continue..."
+    done
 }
 
 main
