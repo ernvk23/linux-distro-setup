@@ -2,13 +2,13 @@
 
 # List of packages to install
 packages_common=(
-	"python3"
-	"python3-pip"
+    "python3"
+    "python3-pip"
     "python3-neovim"
-	"git"
-	"curl"
+    "git"
+    "curl"
     "unzip"
-	"zsh"
+    "zsh"
 )
 
 packages_fedora=(
@@ -18,7 +18,8 @@ packages_fedora=(
 )
 
 packages_deb=(
-    # Neovim manual build
+    # Neovim build prerequisites
+    # https://github.com/neovim/neovim/blob/master/BUILD.md#build-prerequisites
     "ninja-build" 
     "gettext"
     "cmake" 
@@ -26,15 +27,15 @@ packages_deb=(
 )
 
 flatpaks=(
-	"org.gnome.Extensions"
-	"com.github.tchx84.Flatseal"
-	"io.github.peazip.PeaZip"
-	"org.qbittorrent.qBittorrent"
-	"com.github.johnfactotum.Foliate"
-	"app.drey.Warp"
-	"org.videolan.VLC"
-	"com.github.unrud.VideoDownloader" 
-	"com.opera.Opera"
+    "org.gnome.Extensions"
+    "com.github.tchx84.Flatseal"
+    "io.github.peazip.PeaZip"
+    "org.qbittorrent.qBittorrent"
+    "com.github.johnfactotum.Foliate"
+    "app.drey.Warp"
+    "org.videolan.VLC"
+    "com.github.unrud.VideoDownloader" 
+    "com.opera.Opera"
     "org.telegram.desktop"
 )
 
