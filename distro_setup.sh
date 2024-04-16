@@ -37,6 +37,7 @@ flatpaks=(
     "com.github.unrud.VideoDownloader" 
     "com.opera.Opera"
     "org.telegram.desktop"
+    "md.obsidian.Obsidian"
 )
 
 supported_distros=( "fedora" "debian" "ubuntu" )
