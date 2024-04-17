@@ -308,8 +308,8 @@ install_flatpak_packages() {
     echo "-------------------------------------------------------"
 
     if ! is_installed "flatpak"; then
-        echo "Operation failed, make sure you have flatpak installed and re-run the script again."
-        echo "Exiting..."
+        echo "operation failed, make sure you have flatpak installed and re-run the script again."
+        echo "exiting..."
         exit 1
     fi
 
@@ -403,19 +403,17 @@ EOF
         echo "Further service actions require manual attention." 
         echo "You are advised to check manually the service status with:"
         echo "sudo systemctl status $service_name"
-        echo "Exiting..."
-        exit 1
+    else
+        sudo touch "$service_path"
+        echo "$service_content" | sudo tee "$service_path" > /dev/null
+        sudo chmod +x "$service_path"
+
+        sudo systemctl daemon-reload > /dev/null
+        sudo systemctl enable "$service_name" > /dev/null
+        sudo systemctl start "$service_name" > /dev/null
+        suggest_restart=true
     fi
 
-    sudo touch "$service_path"
-    echo "$service_content" | sudo tee "$service_path" > /dev/null
-    sudo chmod +x "$service_path"
-
-    sudo systemctl daemon-reload > /dev/null
-    sudo systemctl enable "$service_name" > /dev/null
-    sudo systemctl start "$service_name" > /dev/null
-
-    suggest_restart=true
 }
 
 main(){
