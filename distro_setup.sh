@@ -157,25 +157,23 @@ EOF
 
 
 install_packages() {
-    check_pending_restart(){
-        case "$distro" in
-            "fedora")
-                ! sudo dnf needs-restarting -r &> /dev/null
-                ;;
-            "debian" | "ubuntu")
-                [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
-                ;;
-        esac
-        if [[ "$?" -eq 0 ]]; then
-            echo "Your system has pending updates, please restart your system before running the script."
-            echo "Exiting..."
-            exit 1
-        fi
-    }
-    check_pending_restart
+    # Check if there was already pending a system restart
+    case "$distro" in
+        "fedora")
+            ! sudo dnf needs-restarting -r &> /dev/null
+            ;;
+        "debian" | "ubuntu")
+            [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
+            ;;
+    esac
+    if [[ "$?" -eq 0 ]]; then
+        echo "Your system has pending updates, please restart your system before running the script."
+        echo "Exiting..."
+        exit 1
+    fi
 
     echo "-------------------------------------------------------"
-    echo "Installing packages..."
+    echo "Updating/installing system packages..."
     echo "-------------------------------------------------------"
 
     case "$distro" in
@@ -221,18 +219,38 @@ install_packages() {
 
 customize_terminal(){
     echo "-------------------------------------------------------"
-    echo "Customizing terminal..."
+    echo "Adding Caskaydia Nerd Font to system fonts..."
     echo "-------------------------------------------------------"
 
-    if ! is_installed "zsh" && ! is_installed "curl"; then
-        echo "Operation failed, make sure you have zsh and curl installed and re-run the script again."
+    if ! is_installed "curl" && ! is_installed "unzip"; then
+        echo "Operation failed, make sure you have curl and unzip installed and re-run the script again."
+        echo "Exiting..."
+        exit 1
+    fi
+
+    font_name="CascadiaMono"
+    fonts_dir="/usr/share/fonts"
+    font_path="$fonts_dir/$font_name"
+
+    if [ -d $font_path ]; then
+        echo "Directory $font_path already existed. Skipping."
+    else
+        # Download the latest Caskaydia Nerd Font
+        curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
+        sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
+        rm ~/$font_name.zip
+        # Update the font cache
+        sudo fc-cache -f -v > /dev/null
+    fi
+
+    if ! is_installed "zsh"; then
+        echo "Operation failed, make sure you have zsh installed and re-run the script again."
         echo "Exiting..."
         exit 1
     fi
 
     echo "-------------------------------------------------------"
     echo "Configuring .zshrc..."
-    echo "-------------------------------------------------------"
     
     if [ -s ~/.zshrc ]; then
         read -p "The file ~/.zhsrc already existed and had a configuration, would you like to replace it?: ${to_install[*]}. Proceed? (y/N) " choice
@@ -249,10 +267,8 @@ customize_terminal(){
         zshrc_config
     fi
 
-    
     echo "-------------------------------------------------------"
     echo "Configuring zplug..."
-    echo "-------------------------------------------------------"
 
     if [ -d ~/.zplug ]; then
         read -p "The directory ~/.zplug already existed, would you like to replace it?: ${to_install[*]}. Proceed? (y/N) " choice
@@ -275,7 +291,6 @@ customize_terminal(){
 
     echo "-------------------------------------------------------"
     echo "Setting shell to zsh..."
-    echo "-------------------------------------------------------"
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
         echo "Zsh was already set as the default shell. Skipping."
@@ -283,35 +298,7 @@ customize_terminal(){
         chsh -s $(which zsh)
         suggest_restart=true
     fi
-}
 
-
-download_fonts(){
-    echo "-------------------------------------------------------"
-    echo "Adding Caskaydia Nerd Font to system fonts..."
-    echo "-------------------------------------------------------"
-
-    if ! is_installed "curl" && ! is_installed "unzip" ; then
-        echo "Operation failed, make sure you have curl and unzip installed and re-run the script again."
-        echo "Exiting..."
-        exit 1
-    fi
-
-    font_name="CascadiaMono"
-    fonts_dir="/usr/share/fonts"
-    font_path="$fonts_dir/$font_name"
-
-    if [ -d $font_path ]; then
-        echo "Directory $font_path already existed. Skipping."
-        return 0
-    fi
-
-    # Download the latest Caskaydia Nerd Font
-    curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
-    sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
-    rm ~/$font_name.zip
-    # Update the font cache
-    sudo fc-cache -f -v > /dev/null
 }
 
 
@@ -364,7 +351,6 @@ fedora_system_setup(){
 
     echo "-------------------------------------------------------"
     echo "Configuring dnf..."
-    echo "-------------------------------------------------------"
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
         echo "The values were already present in /etc/dnf/dnf.conf"
@@ -375,7 +361,6 @@ fedora_system_setup(){
 
     echo "-------------------------------------------------------"
     echo "Setting governor mode to performance..."
-    echo "-------------------------------------------------------"
     
     local script_name="change_governor.sh"
     local script_dir="$HOME/.startup_scripts"
@@ -457,15 +442,14 @@ main(){
         echo "1- System setup"
         echo "  . update system package manager cache"
         echo "  . install required packages"
+        echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
         echo "  . create a default .zshrc (*)"
         echo "  . install zplug and add zplug config to .zhsrc (*)" 
         echo "  . set zsh as default user shell (*)"
         echo "-------------------------------------------------------------------"
-        echo "2- Download CascadiaNerdMono fonts (manual setup required afterwards) (*)"
+        echo "2- Install flatpak packages"
         echo "-------------------------------------------------------------------"
-        echo "3- Install flatpak packages"
-        echo "-------------------------------------------------------------------"
-        echo "4- Fedora setup"
+        echo "3- Fedora setup"
         echo "  . configure dnf for faster downloads (*)"
         echo "  . create startup service for setting the governor to performance (*)"
         echo "-------------------------------------------------------------------"
@@ -473,7 +457,7 @@ main(){
         echo "==================================================================="
         echo "(*) - if not exists/set/configured"
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3 or q): " selection
         case "$selection" in
             1)
                 clear
@@ -482,18 +466,14 @@ main(){
                 ;;
             2)
                 clear
-                download_fonts
-                ;;
-            3)
-                clear
                 install_flatpak_packages
                 ;;
-            4)
+            3)
                 clear
                 fedora_system_setup
                 ;;
             q)
-                echo "Exiting"
+                echo "Exiting..."
                 exit 0
                 ;;
             *)
