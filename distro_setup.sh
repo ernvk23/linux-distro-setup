@@ -397,34 +397,31 @@ EOF
     if [ "$governor" = "performance" ]; then
         echo "The CPU scaling governor was already set to 'performance'."
         echo "There is no need to create a startup service for it. Skipping."
-        echo "Exiting..."
-        exit 0
-    fi
-
-    if [ -f "$script_path" ]; then
-        echo "$script_name already existed in $script_dir. Skipping."
     else
-        mkdir "$script_dir" && touch "$script_path"
-        echo "$script_content" > "$script_path"
-        sudo chmod +x "$script_path"
+        if [ -f "$script_path" ]; then
+            echo "$script_name already existed in $script_dir. Skipping."
+        else
+            mkdir "$script_dir" && touch "$script_path"
+            echo "$script_content" > "$script_path"
+            sudo chmod +x "$script_path"
+        fi
+
+        if [ -f "$service_path" ]; then
+            echo "$service_name already existed in $service_dir. Skipping."
+            echo "Further service actions require manual attention." 
+            echo "You are advised to check manually the service status with:"
+            echo "sudo systemctl status $service_name"
+        else
+            sudo touch "$service_path"
+            echo "$service_content" | sudo tee "$service_path" > /dev/null
+            sudo chmod +x "$service_path"
+
+            sudo systemctl daemon-reload > /dev/null
+            sudo systemctl enable "$service_name" > /dev/null
+            sudo systemctl start "$service_name" > /dev/null
+            suggest_restart=true
+        fi
     fi
-
-    if [ -f "$service_path" ]; then
-        echo "$service_name already existed in $service_dir. Skipping."
-        echo "Further service actions require manual attention." 
-        echo "You are advised to check manually the service status with:"
-        echo "sudo systemctl status $service_name"
-    else
-        sudo touch "$service_path"
-        echo "$service_content" | sudo tee "$service_path" > /dev/null
-        sudo chmod +x "$service_path"
-
-        sudo systemctl daemon-reload > /dev/null
-        sudo systemctl enable "$service_name" > /dev/null
-        sudo systemctl start "$service_name" > /dev/null
-        suggest_restart=true
-    fi
-
 }
 
 
@@ -444,6 +441,8 @@ pre_running_conditions(){
         echo "Exiting..."
         exit 1
     fi
+
+
 }
 
 main(){
