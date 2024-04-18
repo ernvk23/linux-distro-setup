@@ -390,6 +390,17 @@ WantedBy=multi-user.target
 EOF
 )
 
+    # Check if the governor is already in performance mode and skip 
+    # the service creation
+    governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
+
+    if [ "$governor" = "performance" ]; then
+        echo "The CPU scaling governor was already set to 'performance'."
+        echo "There is no need to create a startup service for it. Skipping."
+        echo "Exiting..."
+        exit 0
+    fi
+
     if [ -f "$script_path" ]; then
         echo "$script_name already existed in $script_dir. Skipping."
     else
