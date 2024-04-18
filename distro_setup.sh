@@ -416,21 +416,36 @@ EOF
 
 }
 
-main(){
-    check_supported_distros(){
-        for supported_distro in "${supported_distros[@]}"; do
-            if [[ "$distro" == "$supported_distro" ]]; then
-                return 0  # Supported distribution found
-            fi
-        done
 
+pre_running_conditions(){
+    # The script is only supposed to run for distros available in supported_distros
+    found_distro=false
+    for supported_distro in "${supported_distros[@]}"; do
+        if [[ "$distro" == "$supported_distro" ]]; then
+            found_distro=true
+            break
+        fi
+    done
+
+    if ! "$found_distro"; then
         echo "The current Linux distribution is not supported."
         echo "This script is only intended for running on Fedora, Debian and Ubuntu."
         echo "Exiting..."
         exit 1
-    }
-    # Do not run script if distro is not supported.
-    check_supported_distros
+    fi
+
+    # Run the script as sudo
+    if [ "$(id -u)" -ne 0 ]; then
+        cat <<- 'EOF' >&2
+Error: This script needs to be run with root privileges.
+Please run it with sudo or as the root user.
+EOF
+        exit 1
+    fi
+}
+
+main(){
+    pre_running_conditions
 
     while true; do
         clear
