@@ -253,7 +253,7 @@ customize_terminal(){
     echo "Configuring .zshrc..."
     
     if [ -s ~/.zshrc ]; then
-        read -p "The file ~/.zhsrc already existed and had a configuration, would you like to replace it?: ${to_install[*]}. Proceed? (y/N) " choice
+        read -p "The file ~/.zhsrc already existed and had a configuration, would you like to replace it? Proceed? (y/N) " choice
         case "$choice" in
             y|Y)
                 # It already replaces the existing one
@@ -271,7 +271,7 @@ customize_terminal(){
     echo "Configuring zplug..."
 
     if [ -d ~/.zplug ]; then
-        read -p "The directory ~/.zplug already existed, would you like to replace it?: ${to_install[*]}. Proceed? (y/N) " choice
+        read -p "The directory ~/.zplug already existed, would you like to replace it? Proceed? (y/N) " choice
         case "$choice" in
             y|Y)
                 rm -rf ~/.zplug
@@ -431,15 +431,6 @@ pre_running_conditions(){
         echo "The current Linux distribution is not supported."
         echo "This script is only intended for running on Fedora, Debian and Ubuntu."
         echo "Exiting..."
-        exit 1
-    fi
-
-    # Run the script as sudo
-    if [ "$(id -u)" -ne 0 ]; then
-        cat <<- 'EOF' >&2
-Error: This script needs to be run with root privileges.
-Please run it with sudo or as the root user.
-EOF
         exit 1
     fi
 }
