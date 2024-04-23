@@ -338,7 +338,7 @@ install_flatpak_packages() {
 }
 
 
-fedora_system_setup(){
+fedora_additional_settings(){
     echo "-------------------------------------------------------"
     echo "Fedora system setup..."
     echo "-------------------------------------------------------"
@@ -349,7 +349,12 @@ fedora_system_setup(){
         exit 1
     fi
 
-    echo "-------------------------------------------------------"
+    set_faster_downloads_dnf
+    set_governor_to_performance
+}
+
+set_faster_downloads_dnf(){
+    echo
     echo "Configuring dnf..."
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
@@ -358,9 +363,22 @@ fedora_system_setup(){
         echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf
         suggest_restart=true
     fi
+}
 
-    echo "-------------------------------------------------------"
+set_governor_to_performance(){
+    # Only runs on fedora
+    echo
     echo "Setting governor mode to performance..."
+    
+    # Check if the governor is already in performance mode and skip 
+    # the service creation
+    governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
+
+    if [ "$governor" = "performance" ]; then
+        echo "The CPU scaling governor was already set to 'performance'."
+        echo "There is no need to create a startup service for it. Skipping."
+        return 0
+    fi
     
     local script_name="change_governor.sh"
     local script_dir="$HOME/.startup_scripts"
@@ -390,42 +408,33 @@ WantedBy=multi-user.target
 EOF
 )
 
-    # Check if the governor is already in performance mode and skip 
-    # the service creation
-    governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
-
-    if [ "$governor" = "performance" ]; then
-        echo "The CPU scaling governor was already set to 'performance'."
-        echo "There is no need to create a startup service for it. Skipping."
+    if [ -f "$script_path" ]; then
+        echo "$script_name already existed in $script_dir. Skipping."
     else
-        if [ -f "$script_path" ]; then
-            echo "$script_name already existed in $script_dir. Skipping."
-        else
-            mkdir "$script_dir" && touch "$script_path"
-            echo "$script_content" > "$script_path"
-            sudo chmod +x "$script_path"
-        fi
+        mkdir "$script_dir" && touch "$script_path"
+        echo "$script_content" > "$script_path"
+        sudo chmod +x "$script_path"
+    fi
 
-        if [ -f "$service_path" ]; then
-            echo "$service_name already existed in $service_dir. Skipping."
-            echo "Further service actions require manual attention." 
-            echo "You are advised to check manually the service status with:"
-            echo "sudo systemctl status $service_name"
-        else
-            sudo touch "$service_path"
-            echo "$service_content" | sudo tee "$service_path" > /dev/null
-            sudo chmod +x "$service_path"
+    if [ -f "$service_path" ]; then
+        echo "$service_name already existed in $service_dir. Skipping."
+        echo "Further service actions require manual attention." 
+        echo "You are advised to check manually the service status with:"
+        echo "sudo systemctl status $service_name"
+    else
+        sudo touch "$service_path"
+        echo "$service_content" | sudo tee "$service_path" > /dev/null
+        sudo chmod +x "$service_path"
 
-            sudo systemctl daemon-reload > /dev/null
-            sudo systemctl enable "$service_name" > /dev/null
-            sudo systemctl start "$service_name" > /dev/null
-            suggest_restart=true
-        fi
+        sudo systemctl daemon-reload > /dev/null
+        sudo systemctl enable "$service_name" > /dev/null
+        sudo systemctl start "$service_name" > /dev/null
+        suggest_restart=true
     fi
 }
 
 
-pre_running_conditions(){
+check_supported_distros(){
     # The script is only supposed to run for distros available in supported_distros
     found_distro=false
     for supported_distro in "${supported_distros[@]}"; do
@@ -441,12 +450,10 @@ pre_running_conditions(){
         echo "Exiting..."
         exit 1
     fi
-
-
 }
 
 main(){
-    pre_running_conditions
+    check_supported_distros
 
     while true; do
         clear
@@ -484,7 +491,7 @@ main(){
                 ;;
             3)
                 clear
-                fedora_system_setup
+                fedora_additional_settings 
                 ;;
             q)
                 echo "Exiting..."
