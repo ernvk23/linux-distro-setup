@@ -1,32 +1,30 @@
 #!/bin/bash
 
-# List of packages to install
-packages_common=(
+MARKER='\e[31m'
+EMARKER='\e[0m'
+
+common_packages=(
     "python3"
     "python3-pip"
-    "python3-neovim"
     "git"
     "curl"
     "unzip"
     "zsh"
 )
 
-packages_fedora=(
-    "neovim"
+fedora_packages=(
+    "gnome-shell-extension-dash-to-dock"
+    "gnome-shell-extension-appindicator"
+    "gnome-tweaks"
     "btop"
     "nvtop"
 )
 
-packages_deb=(
-    # Neovim build debian prerequisites
-    # https://github.com/neovim/neovim/blob/master/BUILD.md#build-prerequisites
-    "ninja-build" 
-    "gettext"
-    "cmake" 
-    "build-essential"
+deb_packages=(
 )
 
-flatpaks=(
+
+flatpak_packages=(
     "org.gnome.Extensions"
     "com.github.tchx84.Flatseal"
     "io.github.peazip.PeaZip"
@@ -40,16 +38,31 @@ flatpaks=(
     "md.obsidian.Obsidian"
 )
 
-supported_distros=( "fedora" "debian" "ubuntu" )
+check_supported_distros(){
+    # The script is only supposed to run for distros available in supported_distros
+    supported_distros=("fedora" "debian" "ubuntu")
+    found_distro=false
+    for supported_distro in "${supported_distros[@]}"; do
+        if [[ "$distro" == "$supported_distro" ]]; then
+            found_distro=true
+            break
+        fi
+    done
+
+    if ! "$found_distro"; then
+        echo "The current Linux distribution is not supported."
+        echo "This script is only intended for running on ${supported_distros[@]}."
+        echo "Exiting..."
+        exit 1
+    fi
+}
+
 
 # Determine the distribution
 distro=$(. /etc/os-release && echo "$ID")
 
 # Select packages and package manager accordingly to distributions
-package_manager=""
 suggest_restart=false
-packages=()
-
 
 # Check if a package is installed
 is_installed() {
@@ -157,7 +170,10 @@ EOF
 
 
 install_packages() {
-    # Check if there was already pending a system restart
+    # First argument to control whether to echo "Skipping" or not
+    local echo_log="$1"
+    local packages=("${@:2}")
+
     case "$distro" in
         "fedora")
             ! sudo dnf needs-restarting -r &> /dev/null
@@ -167,27 +183,20 @@ install_packages() {
             ;;
     esac
     if [[ "$?" -eq 0 ]]; then
-        echo "Your system has pending updates, please restart your system before running the script."
+        echo "Your system has pending updates, please restart it and re-run the script."
         echo "Exiting..."
         exit 1
     fi
 
-    echo "-------------------------------------------------------"
-    echo "Updating/installing system packages..."
-    echo "-------------------------------------------------------"
-
+    local package_manager=""
     case "$distro" in
     "fedora")
-        #sudo dnf update -y #> /dev/null
         sudo dnf makecache -y
         package_manager="dnf"
-        packages=("${packages_common[@]}" "${packages_fedora[@]}")
         ;;
     "debian" | "ubuntu")
         sudo apt update -y
-        #sudo apt upgrade -y #> /dev/null
         package_manager="apt"
-        packages=("${packages_common[@]}" "${packages_deb[@]}")
         ;;
     esac
 
@@ -196,9 +205,14 @@ install_packages() {
         if ! is_installed "$package" && is_available "$package"; then
             to_install+=("$package")
         elif ! is_available "$package"; then
-            echo "The package $package is not available in the remote repository. Skipping."
+            echo "The package $package is not available in the remote repository."
+            echo "Manual checking will be required."
+            echo "Exiting..."
+            exit 1
         else
-            echo "The package $package was already installed. Skipping."
+            if "$echo_log"; then
+                echo "System package $package was already installed. Skipping."
+            fi
         fi
     done
     
@@ -210,24 +224,89 @@ install_packages() {
                 suggest_restart=true
                 ;;
             *)
-                echo "Skipping packages installations."
+                echo "Packages installations aborted."
+                echo "Either perform a manual check or re-run the script and accept to install the required packages."
+                echo "Exiting..."
+                exit 1
                 ;;
         esac
     fi
 }
 
 
-customize_terminal(){
-    echo "-------------------------------------------------------"
-    echo "Adding Caskaydia Nerd Font to system fonts..."
-    echo "-------------------------------------------------------"
+install_distro_packages() {
+    # List of packages to install
+    local packages=()
 
-    if ! is_installed "curl" && ! is_installed "unzip"; then
-        echo "Operation failed, make sure you have curl and unzip installed and re-run the script again."
-        echo "Exiting..."
-        exit 1
+    echo
+    echo "Installing distro packages..."
+
+    case "$distro" in
+    "fedora")
+        packages=("${common_packages[@]}" "${fedora_packages[@]}")
+        ;;
+    "debian" | "ubuntu")
+        packages=("${common_packages[@]}" "${deb_packages[@]}")
+        ;;
+    esac
+    
+    install_packages "true" "${packages[@]}"
+}
+
+
+setup_terminal(){
+    echo
+    echo "Setting up terminal."
+    
+    local dependencies=("zsh" "curl" "unzip")
+    install_packages "false" "${dependencies[@]}"
+
+    echo
+    echo "Configuring zsh..."
+
+    if [ -s ~/.zshrc ]; then
+        read -p "The file ~/.zhsrc already existed and isn't empty, would you like to replace it? (y/N)" choice
+        case "$choice" in
+            y|Y)
+                # It already replaces the existing one
+                zshrc_config
+                ;;
+            *)
+                echo "Skipping."
+                ;;
+        esac
+    else
+        zshrc_config
     fi
 
+    echo
+    echo "Configuring zplug..."
+
+    if [ -d ~/.zplug ]; then
+        read -p "The directory ~/.zplug already existed, would you like to replace it? (y/N) " choice
+        case "$choice" in
+            y|Y)
+                rm -rf ~/.zplug
+                curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
+                ;;
+            *)
+                echo "Skipping."
+                ;;
+        esac
+    else
+	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
+    fi
+    
+    if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
+        echo -e "${MARKER}Zplug was already sourced in ~/.zshrc. Verify manually the .zshrc file for missing pluggins.${EMARKER}"
+    else
+        zplug_config
+    fi
+
+
+    echo
+    echo "Adding Caskaydia Nerd Font to system fonts..."
+    
     font_name="CascadiaMono"
     fonts_dir="/usr/share/fonts"
     font_path="$fonts_dir/$font_name"
@@ -243,53 +322,7 @@ customize_terminal(){
         sudo fc-cache -f -v > /dev/null
     fi
 
-    if ! is_installed "zsh"; then
-        echo "Operation failed, make sure you have zsh installed and re-run the script again."
-        echo "Exiting..."
-        exit 1
-    fi
-
-    echo "-------------------------------------------------------"
-    echo "Configuring .zshrc..."
-    
-    if [ -s ~/.zshrc ]; then
-        read -p "The file ~/.zhsrc already existed and had a configuration, would you like to replace it? Proceed? (y/N) " choice
-        case "$choice" in
-            y|Y)
-                # It already replaces the existing one
-                zshrc_config
-                ;;
-            *)
-                echo "Skipping."
-                ;;
-        esac
-    else
-        zshrc_config
-    fi
-
-    echo "-------------------------------------------------------"
-    echo "Configuring zplug..."
-
-    if [ -d ~/.zplug ]; then
-        read -p "The directory ~/.zplug already existed, would you like to replace it? Proceed? (y/N) " choice
-        case "$choice" in
-            y|Y)
-                rm -rf ~/.zplug
-                curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
-                ;;
-            *)
-                echo "Skipping."
-                ;;
-        esac
-    fi
-    
-    if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
-        echo "Zplug was already sourced in ~/.zshrc. Please verify manually. Skipping."
-    else
-        zplug_config
-    fi
-
-    echo "-------------------------------------------------------"
+    echo
     echo "Setting shell to zsh..."
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
@@ -298,23 +331,23 @@ customize_terminal(){
         chsh -s $(which zsh)
         suggest_restart=true
     fi
-
 }
 
 
 install_flatpak_packages() {
-    echo "-------------------------------------------------------"
+    echo
     echo "Installing flatpak packages..."
-    echo "-------------------------------------------------------"
 
+    # Each distro has it's own way to setup flatpak, so leave it to the user.
     if ! is_installed "flatpak"; then
-        echo "operation failed, make sure you have flatpak installed and re-run the script again."
-        echo "exiting..."
+        echo "Operation failed, make sure you have flatpak installed and re-run the script."
+        echo "Manual checking will be required."
+        echo "Exiting..."
         exit 1
     fi
 
     local to_install=()
-    for package in "${flatpaks[@]}"; do
+    for package in "${flatpak_packages[@]}"; do
 	    if ! is_flatpak_installed "$package" && is_flatpak_available "$package"; then
 		    to_install+=("$package")
 	    elif ! is_flatpak_available "$package"; then
@@ -331,31 +364,17 @@ install_flatpak_packages() {
                 flatpak install -y --noninteractive flathub "${to_install[@]}"
                 ;;
             *)
-                echo "Skipping Flatpak packages installations."
+                echo "Skipping."
                 ;;
         esac
     fi
 }
 
 
-fedora_additional_settings(){
-    echo "-------------------------------------------------------"
-    echo "Fedora system setup..."
-    echo "-------------------------------------------------------"
-    
-    if [[ "$distro" != "fedora" ]]; then
-        echo "Current distribution is not Fedora"
-        echo "Exiting..."
-        exit 1
-    fi
-
-    set_faster_downloads_dnf
-    set_governor_to_performance
-}
-
 set_faster_downloads_dnf(){
     echo
     echo "Configuring dnf..."
+
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
         echo "The values were already present in /etc/dnf/dnf.conf"
@@ -366,7 +385,6 @@ set_faster_downloads_dnf(){
 }
 
 set_governor_to_performance(){
-    # Only runs on fedora
     echo
     echo "Setting governor mode to performance..."
     
@@ -392,7 +410,7 @@ EOF
     local service_name="change_governor.service"
     local service_dir="/etc/systemd/system"
     local service_path="$service_dir/$service_name"
-    local service_content=$(envsubst <<- 'EOF'
+    local service_content=$(envsubst <<- EOF
 [Unit]
 Description=Change governor to performance
 
@@ -418,9 +436,8 @@ EOF
 
     if [ -f "$service_path" ]; then
         echo "$service_name already existed in $service_dir. Skipping."
-        echo "Further service actions require manual attention." 
-        echo "You are advised to check manually the service status with:"
-        echo "sudo systemctl status $service_name"
+        echo -e "${MARKER}Manual checking will be required.${EMARKER}"
+        echo -e "You are advised to run:\nsudo systemctl status $service_name"
     else
         sudo touch "$service_path"
         echo "$service_content" | sudo tee "$service_path" > /dev/null
@@ -434,23 +451,106 @@ EOF
 }
 
 
-check_supported_distros(){
-    # The script is only supposed to run for distros available in supported_distros
-    found_distro=false
-    for supported_distro in "${supported_distros[@]}"; do
-        if [[ "$distro" == "$supported_distro" ]]; then
-            found_distro=true
-            break
-        fi
-    done
-
-    if ! "$found_distro"; then
-        echo "The current Linux distribution is not supported."
-        echo "This script is only intended for running on Fedora, Debian and Ubuntu."
+setup_fedora(){
+    echo
+    echo "Fedora system setup..."
+    
+    if [[ "$distro" != "fedora" ]]; then
+        echo "Current distribution is not Fedora."
         echo "Exiting..."
         exit 1
     fi
+    
+    set_faster_downloads_dnf
+    set_governor_to_performance
 }
+
+setup_git(){
+    echo
+    echo "Git setup..."
+
+    local dependencies=("git")
+    install_packages "false" "${dependencies[@]}"
+
+    read -p "Enter username: " username
+    git config --global user.name "$username"
+    read -p "Enter email: " email
+    git config --global user.email "$email"
+
+    if [ -d ~/.ssh ]; then
+        echo "The directory ~/.ssh already existed."
+        echo "Manual checking will be required."
+        echo "Exiting..."
+        exit 1
+    fi
+
+    echo "Press enter for accepting the default key location."
+    ssh-keygen -t ed25519 -C "$email"
+    
+    eval "$(ssh-agent -s)"
+    
+    ssh-add ~/.ssh/id_ed25519
+
+    echo -e "Select and copy the contents of the id_ed25519.pub file\ndisplayed in the terminal to your clipboard"
+    cat ~/.ssh/id_ed25519.pub
+
+    echo
+    echo -e "${MARKER}Manual add the copied ssh key to your github account, go to:${EMARKER}"
+    echo "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
+    echo "and follow from step 2."
+}
+
+
+
+setup_neovim(){
+    echo
+    echo "Neovim setup..."
+
+    if is_installed "neovim"; then
+        echo "Neovim was already installed. Skipping."
+    else
+        local packages=()
+        case "$distro" in
+        "fedora")
+            packages=("git" "neovim" "python3-neovim")
+            install_packages "false" "${packages[@]}"
+            ;;
+        "debian" | "ubuntu")
+            packages=(
+                "git"
+                "python3-neovim"
+                "file"
+                "ninja-build"
+                "gettext"
+                "cmake"
+                "unzip"
+                "curl"
+                "build-essential"
+            )
+            install_packages "false" "${packages[@]}"
+
+            cd ~/ && git clone https://github.com/neovim/neovim
+            cd neovim && git checkout stable
+            make CMAKE_BUILD_TYPE=Release
+            cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
+            cd ~/ && rm -rf neovim
+            ;;
+        esac
+    fi
+
+    local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+
+    if [ -d "$kickstart_path" ]; then
+        echo -e "$The directory $kickstart_path already existed. Skipping."
+        echo "Manual checking will be required."
+        echo "Exiting..."
+        exit 1
+    fi
+
+    # Kickstart nvim
+    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+}
+
 
 main(){
     check_supported_distros
@@ -462,15 +562,22 @@ main(){
         echo "-------------------------------------------------------------------"
         echo "1- System setup"
         echo "  . update system package manager cache"
-        echo "  . install required packages"
+        echo "  . install distro packages"
+        echo "-------------------------------------------------------------------"
+        echo "2- Setup terminal"
+        echo "  . install dependencies (*)"
         echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
         echo "  . create a default .zshrc (*)"
         echo "  . install zplug and add zplug config to .zhsrc (*)" 
         echo "  . set zsh as default user shell (*)"
         echo "-------------------------------------------------------------------"
-        echo "2- Install flatpak packages"
+        echo "3- Setup neovim"
         echo "-------------------------------------------------------------------"
-        echo "3- Fedora setup"
+        echo "4- Setup git"
+        echo "-------------------------------------------------------------------"
+        echo "5- Install flatpak packages"
+        echo "-------------------------------------------------------------------"
+        echo "6- Fedora setup"
         echo "  . configure dnf for faster downloads (*)"
         echo "  . create startup service for setting the governor to performance (*)"
         echo "-------------------------------------------------------------------"
@@ -478,20 +585,31 @@ main(){
         echo "==================================================================="
         echo "(*) - if not exists/set/configured"
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6 or q): " selection
         case "$selection" in
             1)
                 clear
-                install_packages
-                customize_terminal
+                install_distro_packages
                 ;;
             2)
                 clear
-                install_flatpak_packages
+                setup_terminal
                 ;;
             3)
                 clear
-                fedora_additional_settings 
+                setup_neovim
+                ;;
+            4)
+                clear
+                setup_git
+                ;;
+            5)
+                clear
+                install_flatpak_packages
+                ;;
+            6)
+                clear
+                setup_fedora
                 ;;
             q)
                 echo "Exiting..."
@@ -502,7 +620,7 @@ main(){
                 ;;
         esac
         
-        echo "-------------------------------------------------------"
+        echo
         if "$suggest_restart"; then
             echo "Some changes need a system restart to take effect."
             echo "Please restart your system to finish."
@@ -511,8 +629,6 @@ main(){
         else
             echo "Finished!"
         fi
-        echo "-------------------------------------------------------"
-    
         read -p "Press Enter to continue..."
     done
 }
