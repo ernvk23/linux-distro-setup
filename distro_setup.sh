@@ -13,6 +13,7 @@ common_packages=(
 )
 
 fedora_packages=(
+    #"python3-neovim"
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-tweaks"
@@ -347,7 +348,7 @@ setup_neovim(){
         local packages=()
         case "$distro" in
         "fedora")
-            packages=("git" "neovim" "python3-neovim")
+            packages=("git" "neovim")
             install_packages "false" "${packages[@]}"
             ;;
         "debian" | "ubuntu")
@@ -370,8 +371,8 @@ setup_neovim(){
             cd ~/ && rm -rf neovim
             
             # Should be done after the manual build to avoid an old nvim installation.
-            packages=("python3-neovim")
-            install_packages "false" "${packages[@]}"
+            #packages=("python3-neovim")
+            #install_packages "false" "${packages[@]}"
             ;;
         esac
     fi
