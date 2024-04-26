@@ -65,6 +65,21 @@ check_supported_distros(){
 }
 
 
+prepare_package_manager(){
+    local package_manager=""
+    case "$distro" in
+    "fedora")
+        sudo dnf makecache -y
+        package_manager="dnf"
+        ;;
+    "debian" | "ubuntu")
+        sudo apt update -y
+        package_manager="apt"
+        ;;
+    esac
+}
+
+
 check_pending_restart(){
     case "$distro" in
     "fedora")
@@ -191,18 +206,6 @@ install_packages() {
     # First argument to control whether to echo "Skipping" or not
     local echo_log="$1"
     local packages=("${@:2}")
-
-    local package_manager=""
-    case "$distro" in
-    "fedora")
-        sudo dnf makecache -y
-        package_manager="dnf"
-        ;;
-    "debian" | "ubuntu")
-        sudo apt update -y
-        package_manager="apt"
-        ;;
-    esac
 
     local to_install=()
     for package in "${packages[@]}"; do
@@ -380,8 +383,8 @@ setup_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        echo -e "The directory $kickstart_path already existed. Skipping."
-        echo "${MARKER}Manual checking will be required.${EMARKER}"
+        echo "The directory ${kickstart_path} already existed. Skipping."
+        echo -e "${MARKER}Manual checking will be required.${EMARKER}"
         return 0
     fi
 
@@ -578,6 +581,7 @@ setup_fedora(){
 
 main(){
     check_supported_distros
+    prepare_package_manager
 
     while true; do
         clear
