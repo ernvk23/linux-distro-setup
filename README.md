@@ -1,14 +1,19 @@
 # Linux Distro Setup
 
-This repository contains a script that automates the setup process for a fresh installation of Debian/Ubuntu and Fedora Linux distributions. It installs essential system packages, configures the terminal, sets up Neovim, Git, and installs Flatpak packages.
+This repository contains a script that automates the setup process for a fresh installation of either `Debian, Ubuntu or Fedora` Linux distributions. It can:
+1. install essential system packages.
+2. configure the terminal with zsh, syntax highlighting, autosuggestions and history substring search.
+3. setup neovim and configure it with kickstart.nvim.
+4. setup git and generate a ssh key needed for further github setup.
+5. install flatpak packages.
+6. setup fedora dnf for faster downloads and set permanent governor mode to performance.
 
 ## Motivation
-This script is the result of a bit of ADHD and wanting to fresh install Fedora after each major OS version, and then needing to go trough the same process time after time, so this should prevent all that repetitive setup afterwards.
+This script was created due to a tendency for wanting to perform fresh installs of Fedora after each major OS release, and even sometimes simply for the sake of maintaining a clean system (a somewhat painful but oddly enjoyable process). It aims to streamline the repetitive setup tasks that typically follow a fresh installation, saving time and effort.
 
 ## Usage
 
 ### Prerequisites
-
 - `curl` (should be pre-installed on most Linux distributions)
 
 ### Installation
