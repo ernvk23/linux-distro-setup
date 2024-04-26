@@ -353,7 +353,6 @@ setup_neovim(){
         "debian" | "ubuntu")
             packages=(
                 "git"
-                "python3-neovim"
                 "file"
                 "ninja-build"
                 "gettext"
@@ -369,6 +368,10 @@ setup_neovim(){
             make CMAKE_BUILD_TYPE=Release
             cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
             cd ~/ && rm -rf neovim
+            
+            # Should be done after the manual build to avoid an old nvim installation.
+            packages=("python3-neovim")
+            install_packages "false" "${packages[@]}"
             ;;
         esac
     fi
