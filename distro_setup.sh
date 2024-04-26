@@ -450,14 +450,11 @@ install_flatpak_packages() {
     if ! is_installed "flatpak"; then
         local dependencies=("flatpak" "gnome-software-plugin-flatpak")
         install_packages "false" "${dependencies[@]}"
-        echo "Flatpak was installed, a restart will be required before installing flatpak packages."
-        echo "Restart your system an re-run this script option."
-        echo "Exiting..."
-        exit 1
+        flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        echo -e "${MARKER}Flatpak was installed, a restart will be required before installing flatpak packages.${EMARKER}"
+        suggest_restart=true
+        return 0
     fi
-
-    # Make sure the remote repo is always added
-    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
     local to_install=()
     for package in "${flatpak_packages[@]}"; do
