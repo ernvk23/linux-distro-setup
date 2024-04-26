@@ -27,8 +27,5 @@ chmod +x ./distro_setup.sh && ./distro_setup.sh
 ##### Disclaimer
 Always review scripts before running them on your system. While this script aims to automate the setup process, it's essential to understand what it does and ensure it aligns with your requirements and expectations.
 
-##### Contributing
-Contributions are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request.
-
 ##### License
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](LICENSE.md).
