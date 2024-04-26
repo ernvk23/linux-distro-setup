@@ -441,13 +441,18 @@ install_flatpak_packages() {
     echo
     echo "Installing flatpak packages..."
 
-    # Each distro has it's own way to setup flatpak, so leave it to the user.
+    # Fedora has installed flatpak by default
     if ! is_installed "flatpak"; then
-        echo "Operation failed, make sure you have flatpak installed and re-run the script."
-        echo "Manual checking will be required."
+        local dependencies=("flatpak" "gnome-software-plugin-flatpak")
+        install_packages "false" "${dependencies[@]}"
+        echo "Flatpak was installed, a restart will be required before installing flatpak packages."
+        echo "Restart your system an re-run this script option."
         echo "Exiting..."
         exit 1
     fi
+
+    # Make sure the remote repo is always added
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
     local to_install=()
     for package in "${flatpak_packages[@]}"; do
@@ -561,7 +566,7 @@ setup_fedora(){
     if [[ "$distro" != "fedora" ]]; then
         echo "Current distribution is not Fedora."
         echo "Exiting..."
-        exit 1
+        return 0
     fi
     
     set_faster_downloads_dnf
