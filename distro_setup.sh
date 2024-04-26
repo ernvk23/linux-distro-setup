@@ -381,9 +381,8 @@ setup_neovim(){
 
     if [ -d "$kickstart_path" ]; then
         echo -e "The directory $kickstart_path already existed. Skipping."
-        echo "Manual checking will be required."
-        echo "Exiting..."
-        exit 1
+        echo "${MARKER}Manual checking will be required.${EMARKER}"
+        return 0
     fi
 
     # Kickstart nvim
@@ -490,7 +489,7 @@ set_faster_downloads_dnf(){
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
         echo "The values were already present in /etc/dnf/dnf.conf"
     else
-        echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf
+        echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
         suggest_restart=true
     fi
 }
@@ -501,7 +500,7 @@ set_governor_to_performance(){
     
     # Check if the governor is already in performance mode and skip 
     # the service creation
-    governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
+    governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor > /dev/null) 
 
     if [ "$governor" = "performance" ]; then
         echo "The CPU scaling governor was already set to 'performance'."
