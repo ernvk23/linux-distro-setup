@@ -175,7 +175,7 @@ bindkey "$terminfo[kcud1]" history-substring-search-down
 
 # zplug - install/load new plugins when zsh is started or reloaded
 if ! zplug check; then
-	printf "Install? [y/N]: "
+	printf "Zplug will install the plugins sourced in .zshrc. Proceed? [y/N]: "
 	if read -q; then
 	    echo; zplug install
 	fi
@@ -414,8 +414,8 @@ setup_git(){
         echo "User email is already configured."
     fi
 
-    if [ -d ~/.ssh ]; then
-        echo "The directory ~/.ssh already existed."
+    if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
+        echo "The directory ~/.ssh already existed and is not empty."
         echo "Manual checking will be required."
         echo "Exiting..."
         exit 1
