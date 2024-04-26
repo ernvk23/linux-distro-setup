@@ -23,7 +23,6 @@ fedora_packages=(
 deb_packages=(
 )
 
-
 flatpak_packages=(
     "org.gnome.Extensions"
     "com.github.tchx84.Flatseal"
@@ -37,6 +36,13 @@ flatpak_packages=(
     "org.telegram.desktop"
     "md.obsidian.Obsidian"
 )
+
+# Determine the distribution
+distro=$(. /etc/os-release && echo "$ID")
+
+# Select packages and package manager accordingly to distributions
+suggest_restart=false
+
 
 check_supported_distros(){
     # The script is only supposed to run for distros available in supported_distros
@@ -58,11 +64,22 @@ check_supported_distros(){
 }
 
 
-# Determine the distribution
-distro=$(. /etc/os-release && echo "$ID")
+check_pending_restart(){
+    case "$distro" in
+    "fedora")
+        ! sudo dnf needs-restarting -r &> /dev/null
+        ;;
+    "debian" | "ubuntu")
+        [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
+        ;;
+    esac
+    if [[ "$?" -eq 0 ]]; then
+        echo "Your system has pending updates, please restart it and re-run the script."
+        echo "Exiting..."
+        exit 1
+    fi
+}
 
-# Select packages and package manager accordingly to distributions
-suggest_restart=false
 
 # Check if a package is installed
 is_installed() {
@@ -174,20 +191,6 @@ install_packages() {
     local echo_log="$1"
     local packages=("${@:2}")
 
-    case "$distro" in
-        "fedora")
-            ! sudo dnf needs-restarting -r &> /dev/null
-            ;;
-        "debian" | "ubuntu")
-            [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
-            ;;
-    esac
-    if [[ "$?" -eq 0 ]]; then
-        echo "Your system has pending updates, please restart it and re-run the script."
-        echo "Exiting..."
-        exit 1
-    fi
-
     local package_manager=""
     case "$distro" in
     "fedora")
@@ -217,11 +220,11 @@ install_packages() {
     done
     
     if [[ "${#to_install[@]}" -gt 0 ]]; then
+        check_pending_restart
         read -p "The following packages will be installed: ${to_install[*]}. Proceed? (y/N) " choice
         case "$choice" in
             y|Y)
                 sudo $package_manager install -y "${to_install[@]}" #> /dev/null
-                suggest_restart=true
                 ;;
             *)
                 echo "Packages installations aborted."
@@ -331,6 +334,103 @@ setup_terminal(){
         chsh -s $(which zsh)
         suggest_restart=true
     fi
+}
+
+
+setup_neovim(){
+    echo
+    echo "Neovim setup..."
+
+    if is_installed "neovim"; then
+        echo "Neovim was already installed. Skipping."
+    else
+        local packages=()
+        case "$distro" in
+        "fedora")
+            packages=("git" "neovim" "python3-neovim")
+            install_packages "false" "${packages[@]}"
+            ;;
+        "debian" | "ubuntu")
+            packages=(
+                "git"
+                "python3-neovim"
+                "file"
+                "ninja-build"
+                "gettext"
+                "cmake"
+                "unzip"
+                "curl"
+                "build-essential"
+            )
+            install_packages "false" "${packages[@]}"
+
+            cd ~/ && git clone https://github.com/neovim/neovim
+            cd neovim && git checkout stable
+            make CMAKE_BUILD_TYPE=Release
+            cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
+            cd ~/ && rm -rf neovim
+            ;;
+        esac
+    fi
+
+    local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+
+    if [ -d "$kickstart_path" ]; then
+        echo -e "$The directory $kickstart_path already existed. Skipping."
+        echo "Manual checking will be required."
+        echo "Exiting..."
+        exit 1
+    fi
+
+    # Kickstart nvim
+    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+}
+
+
+setup_git(){
+    echo
+    echo "Git setup..."
+
+    local dependencies=("git")
+    install_packages "false" "${dependencies[@]}"
+
+    # Check if user.name is configured
+    if [ -z "$(git config --get user.name)" ]; then
+        read -p "Enter username: " username
+        git config --global user.name "$username"
+    else
+        echo "User name is already configured."
+    fi
+
+    # Check if user.email is configured
+    if [ -z "$(git config --get user.email)" ]; then
+        read -p "Enter email: " email
+        git config --global user.email "$email"
+    else
+        echo "User email is already configured."
+    fi
+
+    if [ -d ~/.ssh ]; then
+        echo "The directory ~/.ssh already existed."
+        echo "Manual checking will be required."
+        echo "Exiting..."
+        exit 1
+    fi
+
+    echo "Press enter for accepting the default key location."
+    ssh-keygen -t ed25519 -C "$email"
+    
+    eval "$(ssh-agent -s)"
+    
+    ssh-add ~/.ssh/id_ed25519
+
+    echo -e "Select and copy the contents of the id_ed25519.pub file\ndisplayed in the terminal to your clipboard"
+    cat ~/.ssh/id_ed25519.pub
+
+    echo
+    echo -e "${MARKER}Manual add the copied ssh key to your github account, go to:${EMARKER}"
+    echo "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
+    echo "and follow from step 2."
 }
 
 
@@ -465,92 +565,6 @@ setup_fedora(){
     set_governor_to_performance
 }
 
-setup_git(){
-    echo
-    echo "Git setup..."
-
-    local dependencies=("git")
-    install_packages "false" "${dependencies[@]}"
-
-    read -p "Enter username: " username
-    git config --global user.name "$username"
-    read -p "Enter email: " email
-    git config --global user.email "$email"
-
-    if [ -d ~/.ssh ]; then
-        echo "The directory ~/.ssh already existed."
-        echo "Manual checking will be required."
-        echo "Exiting..."
-        exit 1
-    fi
-
-    echo "Press enter for accepting the default key location."
-    ssh-keygen -t ed25519 -C "$email"
-    
-    eval "$(ssh-agent -s)"
-    
-    ssh-add ~/.ssh/id_ed25519
-
-    echo -e "Select and copy the contents of the id_ed25519.pub file\ndisplayed in the terminal to your clipboard"
-    cat ~/.ssh/id_ed25519.pub
-
-    echo
-    echo -e "${MARKER}Manual add the copied ssh key to your github account, go to:${EMARKER}"
-    echo "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
-    echo "and follow from step 2."
-}
-
-
-
-setup_neovim(){
-    echo
-    echo "Neovim setup..."
-
-    if is_installed "neovim"; then
-        echo "Neovim was already installed. Skipping."
-    else
-        local packages=()
-        case "$distro" in
-        "fedora")
-            packages=("git" "neovim" "python3-neovim")
-            install_packages "false" "${packages[@]}"
-            ;;
-        "debian" | "ubuntu")
-            packages=(
-                "git"
-                "python3-neovim"
-                "file"
-                "ninja-build"
-                "gettext"
-                "cmake"
-                "unzip"
-                "curl"
-                "build-essential"
-            )
-            install_packages "false" "${packages[@]}"
-
-            cd ~/ && git clone https://github.com/neovim/neovim
-            cd neovim && git checkout stable
-            make CMAKE_BUILD_TYPE=Release
-            cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
-            cd ~/ && rm -rf neovim
-            ;;
-        esac
-    fi
-
-    local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
-
-    if [ -d "$kickstart_path" ]; then
-        echo -e "$The directory $kickstart_path already existed. Skipping."
-        echo "Manual checking will be required."
-        echo "Exiting..."
-        exit 1
-    fi
-
-    # Kickstart nvim
-    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
-}
-
 
 main(){
     check_supported_distros
@@ -565,15 +579,18 @@ main(){
         echo "  . install distro packages"
         echo "-------------------------------------------------------------------"
         echo "2- Setup terminal"
-        echo "  . install dependencies (*)"
         echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
         echo "  . create a default .zshrc (*)"
         echo "  . install zplug and add zplug config to .zhsrc (*)" 
         echo "  . set zsh as default user shell (*)"
         echo "-------------------------------------------------------------------"
         echo "3- Setup neovim"
+        echo "  . install neovim (*)"
+        echo "  . download and set kickstart nvim (*)"
         echo "-------------------------------------------------------------------"
         echo "4- Setup git"
+        echo "  . set global user and name (*)"
+        echo "  . generate a ssh key (further manual actions required on github) (*)"
         echo "-------------------------------------------------------------------"
         echo "5- Install flatpak packages"
         echo "-------------------------------------------------------------------"
