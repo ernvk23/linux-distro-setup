@@ -238,7 +238,7 @@ install_packages() {
 }
 
 
-install_distro_packages() {
+install_system_packages() {
     # List of packages to install
     local packages=()
 
@@ -380,7 +380,7 @@ setup_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        echo -e "$The directory $kickstart_path already existed. Skipping."
+        echo -e "The directory $kickstart_path already existed. Skipping."
         echo "Manual checking will be required."
         echo "Exiting..."
         exit 1
@@ -428,11 +428,13 @@ setup_git(){
     
     ssh-add ~/.ssh/id_ed25519
 
-    echo -e "Select and copy the contents of the id_ed25519.pub file\ndisplayed in the terminal to your clipboard"
-    cat ~/.ssh/id_ed25519.pub
-
+    echo -e "${MARKER}Select and copy the generated ssh key (whole line)\ndisplayed below to your clipboard.${EMARKER}"
+    
     echo
-    echo -e "${MARKER}Manual add the copied ssh key to your github account, go to:${EMARKER}"
+    cat ~/.ssh/id_ed25519.pub
+    echo
+
+    echo -e "${MARKER}Manual add it to your github account, go to:${EMARKER}"
     echo "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
     echo "and follow from step 2."
 }
@@ -583,9 +585,7 @@ main(){
         echo "==================================================================="
         echo "Options"
         echo "-------------------------------------------------------------------"
-        echo "1- System setup"
-        echo "  . update system package manager cache"
-        echo "  . install distro packages"
+        echo "1- Install system packages"
         echo "-------------------------------------------------------------------"
         echo "2- Setup terminal"
         echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
@@ -598,12 +598,16 @@ main(){
         echo "  . download and set kickstart nvim (*)"
         echo "-------------------------------------------------------------------"
         echo "4- Setup git"
+        echo "  . install git (*)"
         echo "  . set global user and name (*)"
-        echo "  . generate a ssh key (further manual actions required on github) (*)"
+        echo "  . generate a ssh key (further manual actions are required on github) (*)"
         echo "-------------------------------------------------------------------"
         echo "5- Install flatpak packages"
         echo "-------------------------------------------------------------------"
-        echo "6- Fedora setup"
+        echo "6- Full system setup"
+        echo "  . options included (1,2,3,4,5)"
+        echo "-------------------------------------------------------------------"
+        echo "7- Fedora setup"
         echo "  . configure dnf for faster downloads (*)"
         echo "  . create startup service for setting the governor to performance (*)"
         echo "-------------------------------------------------------------------"
@@ -611,11 +615,11 @@ main(){
         echo "==================================================================="
         echo "(*) - if not exists/set/configured"
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7 or q): " selection
         case "$selection" in
             1)
                 clear
-                install_distro_packages
+                install_system_packages
                 ;;
             2)
                 clear
@@ -635,8 +639,17 @@ main(){
                 ;;
             6)
                 clear
+                install_system_packages
+                setup_terminal
+                setup_neovim
+                install_flatpak_packages
+                setup_git
+                ;;
+            7)
+                clear
                 setup_fedora
                 ;;
+            
             q)
                 echo "Exiting..."
                 exit 0
