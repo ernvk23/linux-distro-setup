@@ -1,16 +1,3 @@
-
-## If you are a bit like me enjoy!
-
-# Usage instructions
-### Prerequisites
-    - curl
-### Installation (reproduce steps)
-1. cd ~/ && curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro_setup.sh
-#### Never run scripts on your system before been fully aware of what it does, if you don't trust me (and you shoudn't
-#### just go trough it and verify the stuff it does before executing the next instruction."
-2. chmod +x ./distro_setup.sh && ./distro_setup.sh
-
-
 # Linux Distro Setup
 
 This repository contains a script that automates the setup process for a fresh installation of Debian/Ubuntu and Fedora Linux distributions. It installs essential system packages, configures the terminal, sets up Neovim, Git, and installs Flatpak packages.
@@ -32,13 +19,9 @@ This script is the result of a bit of ADHD and wanting to fresh install Fedora a
 ```bash
 curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro_setup.sh
 ```
-3. Make the script executable:
+3. Make the script executable and run it:
 ```bash
-chmod +x ./distro_setup.sh
-```
-4. Run the script:
-```bash
-./distro_setup.sh
+chmod +x ./distro_setup.sh && ./distro_setup.sh
 ```
 
 ##### Disclaimer
