@@ -40,6 +40,7 @@ flatpak_packages=(
 
 # Determine the distribution
 distro=$(. /etc/os-release && echo "$ID")
+package_manager=""
 
 # Select packages and package manager accordingly to distributions
 suggest_restart=false
@@ -66,7 +67,7 @@ check_supported_distros(){
 
 
 prepare_package_manager(){
-    local package_manager=""
+    echo "Updating package manager cache..."
     case "$distro" in
     "fedora")
         sudo dnf makecache -y
