@@ -383,8 +383,7 @@ setup_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        echo "The directory ${kickstart_path} already existed. Skipping."
-        echo -e "${MARKER}Manual checking will be required.${EMARKER}"
+        echo -e "${MARKER}The directory ${kickstart_path} already existed.\nA manual checking will be required.${EMARKER}"
         return 0
     fi
 
