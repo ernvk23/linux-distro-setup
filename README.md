@@ -25,15 +25,15 @@ Rewiew the script and modify the package lists as needed, then run:
 
 #### Packages
 1. Common Packages
-  - python3, pip, git, curl, unzip, zsh
+    - python3, pip, git, curl, unzip, zsh
 2. Desktop Tools
-  - Terminal configuration (zsh, syntax highlighting, autosuggestions, history search, powerlevel10k theme)
-  - Neovim with kickstart.nvim
-  - Git with SSH key generation for github setup
+    - Terminal configuration (zsh, syntax highlighting, autosuggestions, history search, powerlevel10k theme)
+    - Neovim with kickstart.nvim
+    - Git with SSH key generation for github setup
 3. Flatpak Apps
-  - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian
+    - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian
 4. Fedora Packages
-  - Dash to Dock, AppIndicator, GNOME Tweaks, btop, nvtop
+    - Dash to Dock, AppIndicator, GNOME Tweaks, btop, nvtop
 5. Fedora dnf optimization and performance tuning
 
 ### Tested Distributions
