@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MARKER='\e[31m'
-EMARKER='\e[0m'
+RED='\e[31m'
+ERED='\e[0m'
 
 common_packages=(
     "python3"
@@ -306,7 +306,7 @@ setup_terminal(){
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
-        echo -e "${MARKER}Zplug was already sourced in ~/.zshrc. Verify manually the .zshrc file for missing pluggins.${EMARKER}"
+        echo -e "${RED}Zplug was already sourced in ~/.zshrc. Verify manually the .zshrc file for missing pluggins.${ERED}"
     else
         zplug_config
     fi
@@ -384,7 +384,7 @@ setup_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        echo -e "${MARKER}The directory ${kickstart_path} already existed.\nA manual check will be required.${EMARKER}"
+        echo -e "${RED}The directory ${kickstart_path} already existed.\nA manual check will be required.${ERED}"
         return 0
     fi
 
@@ -417,10 +417,8 @@ setup_git(){
     fi
 
     if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
-        echo "The directory ~/.ssh already existed and is not empty."
-        echo "Manual checking will be required."
-        echo "Exiting..."
-        exit 1
+        echo -e "${RED}The directory ~/.ssh already existed and it is not empty.\nProceeding could potentially overwrite any existing ssh key. A manual check will be required.${ERED}"
+        return 0
     fi
 
     echo "Press enter for accepting the default key location."
@@ -430,15 +428,9 @@ setup_git(){
     
     ssh-add ~/.ssh/id_ed25519
 
-    echo -e "${MARKER}Select and copy the generated ssh key (whole line)\ndisplayed below to your clipboard.${EMARKER}"
-    
+    echo -e "${RED}Copy to your clipboard the following generated ssh key\n and manual add it to your github account; go to:\https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n and follow from step 2.${ERED}"
     echo
     cat ~/.ssh/id_ed25519.pub
-    echo
-
-    echo -e "${MARKER}Manual add it to your github account, go to:${EMARKER}"
-    echo "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
-    echo "and follow from step 2."
 }
 
 
@@ -451,7 +443,7 @@ install_flatpak_packages() {
         local dependencies=("flatpak" "gnome-software-plugin-flatpak")
         install_packages "false" "${dependencies[@]}"
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-        echo -e "${MARKER}Flatpak was installed, a restart will be required before installing flatpak packages.${EMARKER}"
+        echo -e "${RED}Flatpak was installed, a restart will be required before installing flatpak packages.${ERED}"
         suggest_restart=true
         return 0
     fi
@@ -546,7 +538,7 @@ EOF
 
     if [ -f "$service_path" ]; then
         echo "$service_name already existed in $service_dir. Skipping."
-        echo -e "${MARKER}Manual checking will be required.${EMARKER}"
+        echo -e "${RED}Manual checking will be required.${ERED}"
         echo -e "You are advised to run:\nsudo systemctl status $service_name"
     else
         sudo touch "$service_path"
@@ -577,11 +569,12 @@ setup_fedora(){
 
 
 main(){
+    clear
     check_supported_distros
     prepare_package_manager
 
     while true; do
-        clear
+        echo
         echo "==================================================================="
         echo "Options"
         echo "-------------------------------------------------------------------"
@@ -618,27 +611,21 @@ main(){
         read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7 or q): " selection
         case "$selection" in
             1)
-                clear
                 install_system_packages
                 ;;
             2)
-                clear
                 setup_terminal
                 ;;
             3)
-                clear
                 setup_neovim
                 ;;
             4)
-                clear
                 setup_git
                 ;;
             5)
-                clear
                 install_flatpak_packages
                 ;;
             6)
-                clear
                 install_system_packages
                 setup_terminal
                 setup_neovim
@@ -646,7 +633,6 @@ main(){
                 setup_git
                 ;;
             7)
-                clear
                 setup_fedora
                 ;;
             
