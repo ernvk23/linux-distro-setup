@@ -1,12 +1,13 @@
 # Linux Distro Setup
 
 This repository contains a script that automates the setup process after a fresh installation of `Debian | Ubuntu | Fedora` Linux distributions. It can:
-1. install essential system packages.
-2. configure the terminal with zsh, syntax highlighting, autosuggestions and history substring search.
-3. setup neovim and configure it with kickstart.nvim.
-4. setup git and generate a ssh key needed for further github setup.
-5. install flatpak packages.
-6. setup fedora dnf for faster downloads and set permanent governor mode to performance.
+  1. Install essential system packages like Python3, pip, git, curl, unzip, and zsh.
+Configure the terminal with zsh, syntax highlighting, autosuggestions, and history substring search.
+  2. Setup neovim and configure it with kickstart.nvim.
+  3. Setup git and generate an SSH key needed for further GitHub setup.
+  4. Install various flatpak packages, including Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video  Downloader, Opera, Telegram, and Obsidian.  
+  5. On Fedora, install additional packages like Dash to Dock, AppIndicator, GNOME Tweaks, btop, and nvtop.
+  6. Setup Fedora dnf for faster downloads and set the permanent governor mode to performance.
 
 ## Motivation
 This script was born out of a bit of ADHD and the desire to periodically clean install the Linux distro I'll be using for a while, as well as for migrating to a new stable major release. I use it mainly with Fedora (daily driver) and Debian (WSL2). Somehow, I used to enjoy the painful yet oddly enjoyable process of setting everything up each time, but I eventually got tired of it, and this script now aims to automate all those repetitive tasks.
