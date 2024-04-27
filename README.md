@@ -18,7 +18,7 @@ curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro
 chmod +x ./distro_setup.sh
 ```
 ### Usage
-Rewiew the script and modify the package lists as neeede, then run:
+Rewiew the script and modify the package lists as needed, then run:
 ```bash
 ./distro_setup.sh
 ```
