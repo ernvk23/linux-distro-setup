@@ -37,9 +37,9 @@ Rewiew the script and modify the package lists as needed, then run:
 5. Fedora dnf optimization and performance tuning
 
 ### Tested Distributions
-  - Fedora Workstation 40
-  - Debian 12 "Bookworm"
-  - Ubuntu 24.04 LTS
+- Fedora Workstation 40
+- Debian 12 "Bookworm"
+- Ubuntu 24.04 LTS
 
 ### Motivation
 This script was born out of a bit of ADHD and the desire to periodically clean install the Linux distro I'll be using for a while, as well as for migrating to a new stable major release. I use it mainly with Fedora (daily driver) and Debian (WSL2). Somehow, I used to enjoy the painful yet oddly enjoyable process of setting everything up each time, but I eventually got tired of it, and this script now aims to automate all those repetitive tasks.
