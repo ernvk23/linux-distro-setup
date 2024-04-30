@@ -13,14 +13,11 @@ This script automates the setup process after a fresh installation of Fedoara, D
 ```bash
 curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro_setup.sh
 ```
-3. Make the script executable:
-```bash
-chmod +x ./distro_setup.sh
-```
 ### Usage
 Rewiew the script and modify the package lists as needed, then run:
+(makes the script executable and runs it)
 ```bash
-./distro_setup.sh
+chmod +x ./distro_setup.sh && ./distro_setup.sh
 ```
 
 #### Packages
