@@ -30,13 +30,15 @@ chmod +x ./distro_setup.sh && ./distro_setup.sh
 3. Flatpak Apps
     - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian
 4. Fedora Packages
-    - Dash to Dock, AppIndicator, GNOME Tweaks, btop, nvtop
+    - Dash to Dock, AppIndicator, GNOME Tweaks, GNOME Pomodoro, btop, nvtop
 5. Fedora dnf optimization and performance tuning
 
 ### Tested Distributions
-- Fedora Workstation 40 (GNOME)
-- Debian 12 "Bookworm" (GNOME)
-- Ubuntu 24.04 LTS (GNOME)
+- Fedora Workstation 40
+- Debian 12 "Bookworm"
+- Ubuntu 24.04 LTS
+
+#### This script was intented to run on GNOME, but also works on KDE, it just skips the GNOME packages and leave the rest the same.
 
 ### Motivation
 This script was born out of a bit of ADHD and the desire to periodically clean install the Linux distro I'll be using for a while, as well as for migrating to a new stable major release. I use it mainly with Fedora (daily driver) and Debian (WSL2). Somehow, I used to enjoy the painful yet oddly enjoyable process of setting everything up each time, but I eventually got tired of it, and this script now aims to automate all those repetitive tasks.
