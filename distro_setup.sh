@@ -14,13 +14,18 @@ common_packages=(
 
 fedora_packages=(
     #"python3-neovim"
-    "gnome-shell-extension-dash-to-dock"
-    "gnome-shell-extension-appindicator"
-    "gnome-tweaks"
-    "gnome-pomodoro"
     "btop"
     "nvtop"
 )
+
+if [ "$DESKTOP_SESSION" = "gnome" ]; then
+    fedora_packages+=(
+        "gnome-shell-extension-dash-to-dock"
+        "gnome-shell-extension-appindicator"
+        "gnome-tweaks"
+        "gnome-pomodoro"
+    )
+fi
 
 deb_packages=(
 )
