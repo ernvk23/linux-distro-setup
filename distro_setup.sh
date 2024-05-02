@@ -17,6 +17,7 @@ fedora_packages=(
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-tweaks"
+    "gnome-pomodoro"
     "btop"
     "nvtop"
 )
