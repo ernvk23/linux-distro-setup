@@ -3,7 +3,20 @@
 RED='\e[31m'
 ERED='\e[0m'
 
-common_packages=(
+# Declare system packages as local variables
+FEDORA_PACKAGES=(
+    "python3-pip"
+    "zsh"
+    "btop"
+    "nvtop"
+    "gnome-shell-extension-dash-to-dock"
+    "gnome-shell-extension-appindicator"
+    "gnome-shell-extension-caffeine"
+    "gnome-tweaks"
+    "gnome-pomodoro"
+)
+
+DEB_PACKAGES=(
     "python3"
     "python3-pip"
     "git"
@@ -12,25 +25,7 @@ common_packages=(
     "zsh"
 )
 
-fedora_packages=(
-    #"python3-neovim"
-    "btop"
-    "nvtop"
-)
-
-if [ "$DESKTOP_SESSION" = "gnome" ]; then
-    fedora_packages+=(
-        "gnome-shell-extension-dash-to-dock"
-        "gnome-shell-extension-appindicator"
-        "gnome-tweaks"
-        "gnome-pomodoro"
-    )
-fi
-
-deb_packages=(
-)
-
-flatpak_packages=(
+FLATPAK_PACKAGES=(
     "org.gnome.Extensions"
     "com.github.tchx84.Flatseal"
     "io.github.peazip.PeaZip"
@@ -105,7 +100,7 @@ check_pending_restart(){
 
 
 # Check if a package is installed
-is_installed() {
+is_package_installed() {
     local package=$1
     case "$distro" in
         "fedora")
@@ -119,7 +114,7 @@ is_installed() {
 
 
 # Check if a package is available to install
-is_available() {
+is_package_available() {
     local package=$1
     case "$distro" in
         "fedora")
@@ -133,14 +128,14 @@ is_available() {
 
 
 # Check if a flatpak package is installed
-is_flatpak_installed() {
+is_flatpak_package_installed() {
     local package=$1
     flatpak list --app --columns=application | grep -q "^$package$" &> /dev/null
 }
 
 
 # Check if a flatpak package is available
-is_flatpak_available() {
+is_flatpak_package_available() {
     local package=$1
     flatpak remote-info --cached flathub "$package" &> /dev/null
 }
@@ -216,9 +211,9 @@ install_packages() {
 
     local to_install=()
     for package in "${packages[@]}"; do
-        if ! is_installed "$package" && is_available "$package"; then
+        if ! is_package_installed "$package" && is_package_available "$package"; then
             to_install+=("$package")
-        elif ! is_available "$package"; then
+        elif ! is_package_available "$package"; then
             echo "The package $package is not available in the remote repository."
             echo "Manual checking will be required."
             echo "Exiting..."
@@ -257,10 +252,13 @@ install_system_packages() {
 
     case "$distro" in
     "fedora")
-        packages=("${common_packages[@]}" "${fedora_packages[@]}")
+        packages=("${FEDORA_PACKAGES[@]}")
+        # if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
+        #     packages+=("${FEDORA_GNOME_PACKAGES[@]}")
+        # fi
         ;;
     "debian" | "ubuntu")
-        packages=("${common_packages[@]}" "${deb_packages[@]}")
+        packages=("${DEB_PACKAGES[@]}")
         ;;
     esac
     
@@ -352,7 +350,7 @@ setup_neovim(){
     echo
     echo "Neovim setup..."
 
-    if is_installed "neovim"; then
+    if is_package_installed "neovim"; then
         echo "Neovim was already installed. Skipping."
     else
         local packages=()
@@ -444,21 +442,25 @@ install_flatpak_packages() {
     echo
     echo "Installing flatpak packages..."
 
-    # Fedora has installed flatpak by default
-    if ! is_installed "flatpak"; then
-        local dependencies=("flatpak" "gnome-software-plugin-flatpak")
+    # Only run on Debian-based distributions
+    if ! is_package_installed "flatpak"; then
+        local dependencies=("flatpak" "gnome-software-plugin-flatpak")        
         install_packages "false" "${dependencies[@]}"
+        
+        # Add flathub remote if not already added
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+        
+        # Inform the user about the required restart
         echo -e "${RED}Flatpak was installed, a restart will be required before installing flatpak packages.${ERED}"
         suggest_restart=true
         return 0
     fi
 
     local to_install=()
-    for package in "${flatpak_packages[@]}"; do
-	    if ! is_flatpak_installed "$package" && is_flatpak_available "$package"; then
+    for package in "${FLATPAK_PACKAGES[@]}"; do
+	    if ! is_flatpak_package_installed "$package" && is_flatpak_package_available "$package"; then
 		    to_install+=("$package")
-	    elif ! is_flatpak_available "$package"; then
+	    elif ! is_flatpak_package_available "$package"; then
 		    echo "Flatpak package $package is not available in the remote repository. Skipping."
 	    else
 		    echo "Flatpak package $package was already installed. Skipping."
