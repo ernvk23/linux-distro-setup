@@ -7,8 +7,10 @@ ERED='\e[0m'
 FEDORA_PACKAGES=(
     "python3-pip"
     "zsh"
+    # Tools
     "btop"
     "nvtop"
+    # Gnome
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-shell-extension-caffeine"
@@ -67,7 +69,7 @@ check_supported_distros(){
 }
 
 
-prepare_package_manager(){
+select_package_manager(){
     echo "Updating package manager cache..."
     case "$distro" in
     "fedora")
@@ -266,7 +268,7 @@ install_system_packages() {
 }
 
 
-setup_terminal(){
+customize_terminal(){
     echo
     echo "Setting up terminal."
     
@@ -579,7 +581,7 @@ setup_fedora(){
 main(){
     clear
     check_supported_distros
-    prepare_package_manager
+    select_package_manager
 
     while true; do
         echo
@@ -588,7 +590,7 @@ main(){
         echo "-------------------------------------------------------------------"
         echo "1- Install system packages"
         echo "-------------------------------------------------------------------"
-        echo "2- Setup terminal"
+        echo "2- Customize terminal"
         echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
         echo "  . create a default .zshrc (*)"
         echo "  . install zplug and add zplug config to .zhsrc (*)" 
@@ -622,7 +624,7 @@ main(){
                 install_system_packages
                 ;;
             2)
-                setup_terminal
+                customize_terminal
                 ;;
             3)
                 setup_neovim
@@ -635,7 +637,7 @@ main(){
                 ;;
             6)
                 install_system_packages
-                setup_terminal
+                customize_terminal
                 setup_neovim
                 install_flatpak_packages
                 setup_git
