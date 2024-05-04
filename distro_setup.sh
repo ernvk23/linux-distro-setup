@@ -355,14 +355,14 @@ setup_neovim(){
     if is_package_installed "neovim"; then
         echo "Neovim was already installed. Skipping."
     else
-        local packages=()
+        local dependencies=()
         case "$distro" in
         "fedora")
-            packages=("git" "neovim")
-            install_packages "false" "${packages[@]}"
+            dependencies=("git" "neovim")
+            install_packages "false" "${dependencies[@]}"
             ;;
         "debian" | "ubuntu")
-            packages=(
+            dependencies=(
                 "git"
                 "file"
                 "ninja-build"
@@ -372,7 +372,7 @@ setup_neovim(){
                 "curl"
                 "build-essential"
             )
-            install_packages "false" "${packages[@]}"
+            install_packages "false" "${dependencies[@]}"
 
             cd ~/ && git clone https://github.com/neovim/neovim
             cd neovim && git checkout stable
