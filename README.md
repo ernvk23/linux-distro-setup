@@ -11,7 +11,7 @@ This script automates the setup process after a fresh installation of Fedoara, D
 1. Open your terminal and navigate to the desired directory.
 2. Run the following command to download the script:
 ```bash
-curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro_setup.sh
+curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro_setup
 ```
 ### Usage
 1. Rewiew the script and modify the package lists as needed.
