@@ -38,7 +38,7 @@ chmod +x ./distro_setup && ./distro_setup
 - Debian 12 "Bookworm" (GNOME)
 - Ubuntu 24.04 LTS (GNOME)
 
-#### `On a Desktop Environment other than GNOME should also work but skips all GNOME related package installations.`
+`On a Desktop Environment other than GNOME should also work but skips all GNOME related package installations.`
 
 ### Motivation
 This script was born out of a bit of ADHD and the desire to periodically clean install the Linux distro I'll be using for a while, as well as for migrating to a new stable major release. I use it mainly with Fedora (daily driver) and Debian (WSL2). Somehow, I used to enjoy the painful yet oddly enjoyable process of setting everything up each time, but I eventually got tired of it, and this script now aims to automate all those repetitive tasks.
