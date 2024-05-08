@@ -17,7 +17,7 @@ curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro
 1. Rewiew the script and modify the package lists as needed.
 2. Run the following command to make the script executable and run it:
 ```bash
-chmod +x ./distro_setup.sh && ./distro_setup.sh
+chmod +x ./distro_setup && ./distro_setup
 ```
 
 #### Packages
