@@ -5,23 +5,19 @@
 RED='\e[31m'
 ERED='\e[0m'
 
-# Declare system packages as local variables
 FEDORA_PACKAGES=(
     "python3-pip"
     "zsh"
-    # Tools
     "btop"
     "nvtop"
-    # Gnome
+)
+
+FEDORA_GNOME_PACKAGES=(
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-shell-extension-caffeine"
     "gnome-tweaks"
     "gnome-pomodoro"
-)
-
-FEDORA_GNOME_PACKAGES=(
-    
 )
 
 DEB_PACKAGES=(
@@ -275,9 +271,9 @@ install_system_packages() {
     case "$distro" in
     "fedora")
         packages=("${FEDORA_PACKAGES[@]}")
-        # if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
-        #     packages+=("${FEDORA_GNOME_PACKAGES[@]}")
-        # fi
+        if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
+            packages+=("${FEDORA_GNOME_PACKAGES[@]}")
+        fi
         ;;
     "debian" | "ubuntu")
         packages=("${DEB_PACKAGES[@]}")
@@ -466,7 +462,12 @@ install_flatpak_packages() {
 
     # Only run on Debian-based distributions
     if ! is_package_installed "flatpak"; then
-        local dependencies=("flatpak" "gnome-software-plugin-flatpak")        
+        local dependencies=("flatpak")        
+        
+        if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
+            dependencies+=("gnome-software-plugin-flatpak")
+        fi
+        
         install_packages "false" "${dependencies[@]}"
         
         # Add flathub remote if not already added
