@@ -145,7 +145,7 @@ is_flatpak_package_available() {
 
 
 # Function to populate the .zshrc file
-zshrc_config() {
+populate_zshrc_file() {
     local zshrc_path="$HOME/.zshrc"
     local zshrc_content=$(cat <<- 'EOF'
 
@@ -172,7 +172,7 @@ EOF
 }
 
 
-zplug_config() {
+add_zplug_to_zshrc_file() {
     local zshrc_path="$HOME/.zshrc"
     local zplug_content=$(cat <<- 'EOF'
 source ~/.zplug/init.zsh
@@ -285,6 +285,21 @@ install_system_packages() {
 
 
 customize_terminal(){
+    #############################
+    # Customizes the terminal.
+    # This funciton installs and sets zsh as default shell, populates the .zshrc file in order to get 
+    # completions, syntax highlighting, history substring search, downloads and uses zplug as the plugin 
+    # manager and adds Caskaydia Nerd Font to the system fonts.
+    #
+    # Globals:
+    #   None
+    #
+    # Arguments:
+    #   None
+    #
+    # Returns:
+    #   None
+    #############################
     echo
     echo "Setting up terminal."
     
@@ -299,14 +314,14 @@ customize_terminal(){
         case "$choice" in
             y|Y)
                 # It already replaces the existing one
-                zshrc_config
+                populate_zshrc_file
                 ;;
             *)
                 echo "Skipping."
                 ;;
         esac
     else
-        zshrc_config
+        populate_zshrc_file
     fi
 
     echo
@@ -330,7 +345,7 @@ customize_terminal(){
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
         echo -e "${RED}Zplug was already sourced in ~/.zshrc. Verify manually the .zshrc file for missing pluggins.${ERED}"
     else
-        zplug_config
+        add_zplug_to_zshrc_file
     fi
 
 
