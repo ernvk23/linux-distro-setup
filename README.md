@@ -34,9 +34,9 @@ chmod +x ./distro_setup && ./distro_setup
 5. Fedora dnf optimization and performance tuning
 
 ### Tested Distributions
-- Fedora Workstation 40 (GNOME)
-- Debian 12 "Bookworm" (GNOME)
-- Ubuntu 23.10 "Mantic Minotaur" (GNOME)
+- Fedora 40 *Workstation* **(GNOME)**
+- Debian 12 *Bookworm* **(GNOME)**
+- Ubuntu 23.10 *Mantic Minotaur* **(GNOME)**
 
 ***Note***: This script is designed to run only on the listed `Fedora, Debian, and Ubuntu` distributions using the `GNOME` desktop environment. It includes a check to prevent execution on other platforms, but you can modify the script to suit your specific needs.
 
