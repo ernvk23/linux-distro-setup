@@ -303,7 +303,7 @@ customize_terminal(){
     echo
     echo "Setting up terminal."
     
-    local dependencies=("zsh" "curl" "unzip")
+    local dependencies=("zsh" "curl" "unzip" "git")
     install_packages "false" "${dependencies[@]}"
 
     echo

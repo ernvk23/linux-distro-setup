@@ -36,7 +36,7 @@ chmod +x ./distro_setup && ./distro_setup
 ### Tested Distributions
 - Fedora Workstation 40 (GNOME)
 - Debian 12 "Bookworm" (GNOME)
-- Ubuntu 24.04 LTS (GNOME)
+- Ubuntu 23.10 "Mantic Minotaur" (GNOME)
 
 `On a Desktop Environment other than GNOME should also work but skips all GNOME related package installations.`
 
