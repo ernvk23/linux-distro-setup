@@ -10,9 +10,6 @@ FEDORA_PACKAGES=(
     "zsh"
     "btop"
     "nvtop"
-)
-
-FEDORA_GNOME_PACKAGES=(
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-shell-extension-caffeine"
@@ -51,7 +48,7 @@ package_manager=""
 suggest_restart=false
 
 
-check_if_distro_is_supported(){
+check_for_distro_support(){
     supported_distros=("fedora" "debian" "ubuntu")
     found_distro=false
     for supported_distro in "${supported_distros[@]}"; do
@@ -64,6 +61,13 @@ check_if_distro_is_supported(){
     if ! "$found_distro"; then
         echo "The current Linux distribution is not supported."
         echo "This script is only intended for running on ${supported_distros[@]}."
+        echo "Exiting..."
+        exit 1
+    fi
+
+    if [ "$XDG_CURRENT_DESKTOP" != "GNOME" ]; then
+        echo "The current Desktop Environment is not supported."
+        echo "This script is only intended for running on GNOME."
         echo "Exiting..."
         exit 1
     fi
@@ -271,9 +275,6 @@ install_system_packages() {
     case "$distro" in
     "fedora")
         packages=("${FEDORA_PACKAGES[@]}")
-        if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
-            packages+=("${FEDORA_GNOME_PACKAGES[@]}")
-        fi
         ;;
     "debian" | "ubuntu")
         packages=("${DEB_PACKAGES[@]}")
@@ -477,11 +478,7 @@ install_flatpak_packages() {
 
     # Only run on Debian-based distributions
     if ! is_package_installed "flatpak"; then
-        local dependencies=("flatpak")        
-        
-        if [ "$XDG_CURRENT_DESKTOP" = "GNOME" ]; then
-            dependencies+=("gnome-software-plugin-flatpak")
-        fi
+        local dependencies=("flatpak" "gnome-software-plugin-flatpak")        
         
         install_packages "false" "${dependencies[@]}"
         
@@ -616,7 +613,7 @@ setup_fedora(){
 
 main(){
     clear
-    check_if_distro_is_supported
+    check_for_distro_support
     select_package_manager
 
     while true; do
