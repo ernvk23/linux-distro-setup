@@ -440,18 +440,18 @@ setup_git(){
 
     # Check if user.name is configured
     if [ -z "$(git config --get user.name)" ]; then
-        read -p "Enter username: " username
+        read -p "Enter the username for your github account: " username
         git config --global user.name "$username"
     else
-        echo "User name is already configured."
+        echo "An username was already set. Skipping."
     fi
 
     # Check if user.email is configured
     if [ -z "$(git config --get user.email)" ]; then
-        read -p "Enter email: " email
+        read -p "Enter the email for your github account: " email
         git config --global user.email "$email"
     else
-        echo "User email is already configured."
+        echo "An email was already set. Skipping."
     fi
 
     if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
@@ -459,7 +459,7 @@ setup_git(){
         return 0
     fi
 
-    echo "Press enter for accepting the default key location."
+    echo -e "${RED}On each prompt press <Enter> for accepting a default key filename and an empty passphrase.${ERED}"
     ssh-keygen -t ed25519 -C "$email"
     
     eval "$(ssh-agent -s)"
