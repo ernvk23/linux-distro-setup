@@ -48,7 +48,7 @@ package_manager=""
 suggest_restart=false
 
 
-check_for_distro_support(){
+validate_supported_environment(){
     supported_distros=("fedora" "debian" "ubuntu")
     found_distro=false
     for supported_distro in "${supported_distros[@]}"; do
@@ -613,7 +613,7 @@ setup_fedora(){
 
 main(){
     clear
-    check_for_distro_support
+    validate_supported_environment
     select_package_manager
 
     while true; do
