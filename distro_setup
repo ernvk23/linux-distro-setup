@@ -199,7 +199,7 @@ bindkey "$terminfo[kcud1]" history-substring-search-down
 
 # zplug - install/load new plugins when zsh is started or reloaded
 if ! zplug check; then
-    printf "zplug wants to install the plugins sourced in the .zshrc file. Proceed? [y/N]: "
+    echo "zplug wants to install the plugins sourced in the .zshrc file. Proceed? [y/N]: "
 	if read -q; then
 	    echo; zplug install
 	fi
@@ -462,7 +462,8 @@ setup_git(){
     
     ssh-add ~/.ssh/id_ed25519
 
-    echo -e "${RED}Copy the following ssh key and add it to your github account; go to and follow from step 2:\nhttps://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account${ERED}"
+    echo -e "${RED}Copy the following ssh key and add it to your github account; go to and follow from step 2:${ERED}"
+    echo "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
             
     echo
     cat ~/.ssh/id_ed25519.pub
