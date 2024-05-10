@@ -16,7 +16,6 @@ FEDORA_PACKAGES=(
     "gnome-shell-extension-caffeine"
     "gnome-tweaks"
     "gnome-pomodoro"
-    "yaru-theme"
 )
 
 DEB_PACKAGES=(
