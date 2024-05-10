@@ -10,7 +10,6 @@ FEDORA_PACKAGES=(
     "zsh"
     "btop"
     "nvtop"
-    "yaru-theme"
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-shell-extension-caffeine"
