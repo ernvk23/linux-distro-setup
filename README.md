@@ -31,7 +31,7 @@ This script automates the setup process after a fresh installation of Fedoara, D
     - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian
 4. Fedora Packages
     - Dash to Dock, AppIndicator, GNOME Tweaks, GNOME Pomodoro, btop, nvtop
-5. Fedora dnf optimization and performance tuning
+5. Fedora dnf optimization, performance tuning and sets gnome yuru-theme icons 
 
 ### Tested Distributions
 - Fedora 40 *Workstation* **(GNOME)**
