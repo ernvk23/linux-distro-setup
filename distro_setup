@@ -7,7 +7,6 @@ ERED='\e[0m'
 
 FEDORA_PACKAGES=(
     "python3-pip"
-    "zsh"
     "btop"
     "nvtop"
     "gnome-shell-extension-dash-to-dock"
@@ -23,7 +22,6 @@ DEB_PACKAGES=(
     "git"
     "curl"
     "unzip"
-    "zsh"
 )
 
 FLATPAK_PACKAGES=(
