@@ -492,6 +492,11 @@ setup_git(){
 
 
 install_flatpak_packages() {
+    if [[ -n "$IS_WSL" || -n "$WSL_DISTRO_NAME" ]]; then
+        echo "Skipping flatpak installation on WSL."
+        return 0
+    fi
+
     echo
     echo "Installing flatpak packages..."
 
