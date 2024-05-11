@@ -9,10 +9,10 @@ FEDORA_PACKAGES=(
     "python3-pip"
     "btop"
     "nvtop"
+    "gnome-tweaks"
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-shell-extension-caffeine"
-    "gnome-tweaks"
     "gnome-pomodoro"
 )
 
@@ -21,6 +21,9 @@ UBUNTU_PACKAGES=(
     "git"
     "curl"
     "unzip"
+    "gnome-tweaks"
+    "gnome-shell-extension-caffeine"
+    "gnome-shell-pomodoro"
 )
 
 DEBIAN_PACKAGES=(
@@ -32,10 +35,10 @@ DEBIAN_PACKAGES=(
 )
 
 ADDITIONAL_DEBIAN_NON_WSL_PACKAGES=(
-    "gnome-shell-extension-caffeine"
-    "gnome-shell-extension-appindicator"
     "gnome-tweaks"
-    "gnome-pomodoro"
+    "gnome-shell-extension-appindicator"
+    "gnome-shell-extension-caffeine"
+    "gnome-shell-pomodoro"
 )
 
 FLATPAK_PACKAGES=(
