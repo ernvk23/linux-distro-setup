@@ -63,7 +63,7 @@ validate_supported_environment(){
         exit 1
     fi
 
-    if [ "$XDG_CURRENT_DESKTOP" != "GNOME" ]; then
+    if [[ "$XDG_CURRENT_DESKTOP" != *GNOME* ]]; then
         echo "The current Desktop Environment is not supported."
         echo "This script is only intended for running on GNOME."
         echo "Exiting..."
