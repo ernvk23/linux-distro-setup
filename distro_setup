@@ -16,12 +16,26 @@ FEDORA_PACKAGES=(
     "gnome-pomodoro"
 )
 
-DEB_PACKAGES=(
+UBUNTU_PACKAGES=(
+    "python3-pip"
+    "git"
+    "curl"
+    "unzip"
+)
+
+DEBIAN_PACKAGES=(
     "python3"
     "python3-pip"
     "git"
     "curl"
     "unzip"
+)
+
+ADDITIONAL_DEBIAN_NON_WSL_PACKAGES=(
+    "gnome-shell-extension-caffeine"
+    "gnome-shell-extension-appindicator"
+    "gnome-tweaks"
+    "gnome-pomodoro"
 )
 
 FLATPAK_PACKAGES=(
@@ -274,8 +288,14 @@ install_system_packages() {
     "fedora")
         packages=("${FEDORA_PACKAGES[@]}")
         ;;
-    "debian" | "ubuntu")
-        packages=("${DEB_PACKAGES[@]}")
+    "ubuntu")
+        packages=("${UBUNTU_PACKAGES[@]}")
+        ;;
+    "debian")
+        packages=("${DEBIAN_PACKAGES[@]}")
+        if [[ -z "$IS_WSL" && -z "$WSL_DISTRO_NAME" ]]; then
+            packages+=("${ADDITIONAL_DEBIAN_NON_WSL_PACKAGES[@]}")
+        fi
         ;;
     esac
     
