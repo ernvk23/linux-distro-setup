@@ -63,7 +63,7 @@ package_manager=""
 suggest_restart=false
 
 
-validate_supported_environment(){
+check_running_conditions(){
     supported_distros=("fedora" "debian" "ubuntu")
     found_distro=false
     for supported_distro in "${supported_distros[@]}"; do
@@ -86,25 +86,8 @@ validate_supported_environment(){
         echo "Exiting..."
         exit 1
     fi
-}
 
-
-select_package_manager(){
-    echo "Updating package manager cache..."
-    case "$distro" in
-    "fedora")
-        sudo dnf makecache -y
-        package_manager="dnf"
-        ;;
-    "debian" | "ubuntu")
-        sudo apt update -y
-        package_manager="apt"
-        ;;
-    esac
-}
-
-
-check_pending_restart(){
+    # Check for pending restart
     case "$distro" in
     "fedora")
         ! sudo dnf needs-restarting -r &> /dev/null
@@ -118,6 +101,19 @@ check_pending_restart(){
         echo "Exiting..."
         exit 1
     fi
+
+    # Select package manager and update its cache
+    echo "Updating package manager cache..."
+    case "$distro" in
+    "fedora")
+        sudo dnf makecache -y
+        package_manager="dnf"
+        ;;
+    "debian" | "ubuntu")
+        sudo apt update -y
+        package_manager="apt"
+        ;;
+    esac
 }
 
 
@@ -263,7 +259,6 @@ install_packages() {
     done
     
     if [[ "${#to_install[@]}" -gt 0 ]]; then
-        check_pending_restart
         read -p "The following packages will be installed: ${to_install[*]}. Proceed? (y/N) " choice
         case "$choice" in
             y|Y)
@@ -661,7 +656,7 @@ setup_fedora(){
 
 main(){
     clear
-    validate_supported_environment
+    check_running_conditions
     select_package_manager
 
     while true; do
