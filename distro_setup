@@ -53,6 +53,7 @@ FLATPAK_PACKAGES=(
     "com.opera.Opera"
     "org.telegram.desktop"
     "md.obsidian.Obsidian"
+    "com.rafaelmardojai.Blanket"
 )
 
 # Determine the distribution
