@@ -63,7 +63,7 @@ package_manager=""
 suggest_restart=false
 
 
-check_running_conditions(){
+prepare_running_conditions(){
     supported_distros=("fedora" "debian" "ubuntu")
     found_distro=false
     for supported_distro in "${supported_distros[@]}"; do
@@ -650,13 +650,13 @@ setup_fedora(){
     
     set_faster_downloads_dnf
     set_governor_to_performance
-    set_yaru_icons
+    #set_yaru_icons
 }
 
 
 main(){
     clear
-    check_running_conditions
+    prepare_running_conditions
     select_package_manager
 
     while true; do
