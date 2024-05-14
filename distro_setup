@@ -689,7 +689,6 @@ main(){
         echo "7- Fedora setup"
         echo "  . configure dnf for faster downloads (*)"
         echo "  . create startup service for setting the governor to performance (*)"
-        echo "  . download and set yaru-theme icons (*)"
         echo "-------------------------------------------------------------------"
         echo "q- Quit"
         echo "==================================================================="
