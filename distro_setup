@@ -81,7 +81,7 @@ prepare_running_conditions(){
         exit 1
     fi
 
-    if [[ "$XDG_CURRENT_DESKTOP" != *GNOME* ]]; then
+    if [[ -z "$WSL_DISTRO_NAME" && "$XDG_CURRENT_DESKTOP" != *GNOME* ]];  then
         echo "The current Desktop Environment is not supported."
         echo "This script is only intended for running on GNOME."
         echo "Exiting..."
@@ -292,7 +292,7 @@ install_system_packages() {
         ;;
     "debian")
         packages=("${DEBIAN_PACKAGES[@]}")
-        if [[ -z "$IS_WSL" && -z "$WSL_DISTRO_NAME" ]]; then
+        if [[ -z "$WSL_DISTRO_NAME" ]]; then
             packages+=("${ADDITIONAL_DEBIAN_NON_WSL_PACKAGES[@]}")
         fi
         ;;
@@ -488,7 +488,7 @@ setup_git(){
 
 
 install_flatpak_packages() {
-    if [[ -n "$IS_WSL" || -n "$WSL_DISTRO_NAME" ]]; then
+    if [[ -n "$WSL_DISTRO_NAME" ]]; then
         echo "Skipping flatpak installation on WSL."
         return 0
     fi
