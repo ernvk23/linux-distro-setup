@@ -42,7 +42,8 @@ ADDITIONAL_DEBIAN_NON_WSL_PACKAGES=(
 )
 
 FLATPAK_PACKAGES=(
-    "org.gnome.Extensions"
+    "com.mattjakeman.ExtensionManager"
+    #"org.gnome.Extensions"
     "com.github.tchx84.Flatseal"
     "io.github.peazip.PeaZip"
     "org.qbittorrent.qBittorrent"
