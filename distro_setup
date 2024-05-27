@@ -375,7 +375,9 @@ customize_terminal(){
     fonts_dir="/usr/share/fonts"
     font_path="$fonts_dir/$font_name"
 
-    if [ -d $font_path ]; then
+    if [[ -n "$WSL_DISTRO_NAME" ]]; then
+        echo "Skipping adding Caskaydia Nerd Font on WSL."
+    elif [ -d $font_path ]; then
         echo "Directory $font_path already existed. Skipping."
     else
         # Download the latest Caskaydia Nerd Font
