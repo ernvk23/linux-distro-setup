@@ -33,6 +33,40 @@ This script automates the setup process after a fresh installation of Fedoara, D
     - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian, Blanket
 5. Fedora dnf optimization, performance tuning, yaru icon theme
 
+#### Extract from the script's menu
+```bash
+echo "Options"
+echo "-------------------------------------------------------------------"
+echo "1- System setup"
+echo "-------------------------------------------------------------------"
+echo "  . install required dependencies"
+echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
+echo "  . create a default .zshrc (*)"
+echo "  . install zplug and add zplug config to .zhsrc (*)" 
+echo "  . set zsh as default user shell (*)"
+echo "  . install neovim (*)"
+echo "  . download and set kickstart nvim (*)"
+echo "  . install git (*)"
+echo "  . set git lobal user and name (*)"
+echo "  . generate a ssh key (further manual actions are required on github) (*)"
+echo "-------------------------------------------------------------------"
+echo "2- Install flatpak packages (*)"
+echo "-------------------------------------------------------------------"
+echo "3- Full system setup (option 1 and 2)"
+echo "-------------------------------------------------------------------"
+echo "------------------------ FEDORA ONLY ------------------------------"
+echo "-------------------------------------------------------------------"
+echo "4- Configure dnf for faster downloads (*)"
+echo "-------------------------------------------------------------------"
+echo "5- Permanent set the governor mode to performance (*)"
+echo "-------------------------------------------------------------------"
+echo "6- Set yaru icon theme (*)"
+echo "-------------------------------------------------------------------"
+echo "q- Quit"
+echo "==================================================================="
+echo "(*) - if not exists/set/configured"
+```
+
 ### Tested Distributions
 - Fedora 40 *Workstation* **(GNOME)**
 - Debian 12 *Bookworm* **(GNOME)**
