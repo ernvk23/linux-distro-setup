@@ -33,7 +33,7 @@ This script automates the setup process after a fresh installation of Fedoara, D
     - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian, Blanket
 5. Fedora dnf optimization, performance tuning, yaru icon theme
 
-*** Script's code snippet ***
+#### Script's code snippet
 ```bash
 echo "Options"
 echo "-------------------------------------------------------------------"
