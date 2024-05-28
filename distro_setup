@@ -539,9 +539,15 @@ install_flatpak_packages() {
 }
 
 
-set_faster_downloads_dnf(){
+set_faster_downloads_fedora(){
     echo
     echo "Configuring dnf..."
+    
+    if [[ "$distro" != "fedora" ]]; then
+        echo "Current distribution is not Fedora."
+        echo "Exiting..."
+        return 0
+    fi
 
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
@@ -552,10 +558,17 @@ set_faster_downloads_dnf(){
     fi
 }
 
-set_governor_to_performance(){
+
+set_governor_to_performance_fedora(){
     echo
     echo "Setting governor mode to performance..."
     
+    if [[ "$distro" != "fedora" ]]; then
+        echo "Current distribution is not Fedora."
+        echo "Exiting..."
+        return 0
+    fi
+
     # Check if the governor is already in performance mode and skip 
     # the service creation
     governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor > /dev/null) 
@@ -619,12 +632,16 @@ EOF
 }
 
 
-set_yaru_icons(){
+set_yaru_icons_fedora(){
     echo
     echo "Setting yaru icons... "
 
-    #urrent_gtk_theme=$(gsettings get org.gnome.desktop.interface gtk-theme)
-    #current_wm_theme=$(gsettings get org.gnome.desktop.wm.preferences theme)
+    if [[ "$distro" != "fedora" ]]; then
+        echo "Current distribution is not Fedora."
+        echo "Exiting..."
+        return 0
+    fi
+
     current_icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme)
 
     local icon_theme='Yaru-prussiangreen-dark'
@@ -642,22 +659,6 @@ set_yaru_icons(){
 }
 
 
-setup_fedora(){
-    echo
-    echo "Fedora system setup..."
-    
-    if [[ "$distro" != "fedora" ]]; then
-        echo "Current distribution is not Fedora."
-        echo "Exiting..."
-        return 0
-    fi
-    
-    set_faster_downloads_dnf
-    set_governor_to_performance
-    #set_yaru_icons
-}
-
-
 main(){
     clear
     prepare_running_conditions
@@ -668,62 +669,61 @@ main(){
         echo "==================================================================="
         echo "Options"
         echo "-------------------------------------------------------------------"
-        echo "1- Install system packages"
+        echo "1- System setup"
         echo "-------------------------------------------------------------------"
-        echo "2- Customize terminal"
+        echo "  . install required dependencies"
         echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
         echo "  . create a default .zshrc (*)"
         echo "  . install zplug and add zplug config to .zhsrc (*)" 
         echo "  . set zsh as default user shell (*)"
-        echo "-------------------------------------------------------------------"
-        echo "3- Setup neovim"
         echo "  . install neovim (*)"
         echo "  . download and set kickstart nvim (*)"
-        echo "-------------------------------------------------------------------"
-        echo "4- Setup git"
         echo "  . install git (*)"
-        echo "  . set global user and name (*)"
+        echo "  . set git lobal user and name (*)"
         echo "  . generate a ssh key (further manual actions are required on github) (*)"
         echo "-------------------------------------------------------------------"
-        echo "5- Install flatpak packages"
+        echo "2- Install flatpak packages (*)"
         echo "-------------------------------------------------------------------"
-        echo "6- Full system setup"
-        echo "  . options included (1,2,3,4,5)"
+        echo "3- Full system setup (option 1 and 2)"
         echo "-------------------------------------------------------------------"
-        echo "7- Fedora setup"
-        echo "  . configure dnf for faster downloads (*)"
-        echo "  . create startup service for setting the governor to performance (*)"
+        echo "------------------------ FEDORA ONLY ------------------------------"
+        echo "-------------------------------------------------------------------"
+        echo "4- Configure dnf for faster downloads (*)"
+        echo "-------------------------------------------------------------------"
+        echo "5- Permanent set the governor mode to performance (*)"
+        echo "-------------------------------------------------------------------"
+        echo "6- Set yaru icon theme (*)"
         echo "-------------------------------------------------------------------"
         echo "q- Quit"
         echo "==================================================================="
         echo "(*) - if not exists/set/configured"
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6 or q): " selection
         case "$selection" in
             1)
                 install_system_packages
-                ;;
-            2)
                 customize_terminal
-                ;;
-            3)
                 setup_neovim
-                ;;
-            4)
                 setup_git
                 ;;
-            5)
+            2)
                 install_flatpak_packages
                 ;;
-            6)
+            3)
                 install_system_packages
                 customize_terminal
                 setup_neovim
                 install_flatpak_packages
                 setup_git
                 ;;
-            7)
-                setup_fedora
+            4)
+                set_faster_downloads_fedora
+                ;;
+            5)
+                set_governor_to_performance_fedora
+                ;;
+            6)
+                set_yaru_icons_fedora
                 ;;
             
             q)
