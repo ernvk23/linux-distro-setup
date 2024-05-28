@@ -20,23 +20,23 @@ This script automates the setup process after a fresh installation of Fedoara, D
   chmod +x ./distro_setup && ./distro_setup
   ```
 
-#### Packages
-1. Common Packages
-    - python3, pip, git, curl, unzip
-2. Desktop Tools
+#### Detailed description of what it does/installs.
+1. Common packages
+    - python3, python3-pip, pip, git, curl, unzip
+2. Fedora Packages
+    - Dash to Dock, AppIndicator, Tweaks, Pomodoro, Caffeine, btop, nvtop
+3. Desktop Tools
     - Terminal configuration (zsh, syntax highlighting, autosuggestions, history search, powerlevel10k theme)
     - Neovim with kickstart.nvim
     - Git with SSH key generation for github setup
 3. Flatpak Apps
-    - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian
-4. Fedora Packages
-    - Dash to Dock, AppIndicator, GNOME Tweaks, GNOME Pomodoro, btop, nvtop
-5. Fedora dnf optimization and performance tuning.
+    - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian, Blanket
+5. Fedora dnf optimization, performance tuning, yaru icon theme
 
 ### Tested Distributions
 - Fedora 40 *Workstation* **(GNOME)**
 - Debian 12 *Bookworm* **(GNOME)**
-- Ubuntu 23.10 *Mantic Minotaur* **(GNOME)**
+- Ubuntu 24.04 *Noble Numbat* **(GNOME)**
 
 ***Note***: This script is designed to run only on the listed `Fedora, Debian, and Ubuntu` distributions using the `GNOME` desktop environment. It includes a check to prevent execution on other platforms, but you can modify the script to suit your specific needs.
 
