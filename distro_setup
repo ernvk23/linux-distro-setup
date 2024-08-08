@@ -562,7 +562,7 @@ install_additional_media_codecs_fedora(){
     echo
     echo "Installing additional media codecs..."
 	
-	if [[ "$distro" != "fedora" ]]; then
+    if [[ "$distro" != "fedora" ]]; then
         echo "Current distribution is not Fedora."
         echo "Exiting..."
         return 0
@@ -570,37 +570,45 @@ install_additional_media_codecs_fedora(){
 
 	# https://rpmfusion.org/Configuration
 	# Installing Free and Nonfree Repositories
-	sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-
-	# On Fedora, we default to use the openh264 library
+	sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+	
+    # On Fedora, we default to use the openh264 library
 	sudo dnf config-manager --enable fedora-cisco-openh264
 
 	# RPM Fusion repositories also provide Appstream metadata to enable users to install # packages using Gnome Software/KDE Discover
-	sudo dnf update @core
+	sudo dnf update -y @core
 	
 	# https://rpmfusion.org/Howto/Multimedia#Hardware_codecs_with_AMD_.28mesa.29
 	# Switch to full ffmpeg
-	sudo dnf swap ffmpeg-free ffmpeg --allowerasing
+	sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 
 	# Install additional codecs
-	sudo dnf groupupdate multimedia --setop="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
-	sudo dnf groupupdate sound-and-video
+	sudo dnf groupupdate -y multimedia --setop="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
+	sudo dnf groupupdate -y sound-and-video
 
 	if grep -q AuthenticAMD /proc/cpuinfo; then
-		sudo dnf swap mesa-va-drivers mesa-va-drivers-freeworld
-		sudo dnf swap mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
+		sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
+		sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
 	elif grep -q GenuineIntel /proc/cpuinfo; then
-		sudo dnf install intel-media-driver
+		sudo dnf install -y intel-media-driver
 	else
 		echo "There are only supported AMD and Intel platforms."
         echo "Exiting..."
         return 0
 	fi
 
-	# Make available vainfo
-	sudo dnf install libva-utils
+	# Make available vainfo (not necessary)
+	#sudo dnf install libva-utils
 
-	echo -e "${RED}On Firefox to enable HW acceleration make sure to enable it on settings and in about:config set media.ffmpeg.vaapi.enabled to true.${ERED}"
+	# https://fedoraproject.org/wiki/OpenH264
+	# enable OpenH264 on firefox
+	sudo dnf install mozilla-openh264
+
+	echo -e "${RED}On Firefox to enable HW acceleration make sure to enable it on settings, in plugins enable OpenH264 from Cisco and in about:config set the following fields to true:\n${ERED}"
+	echo "media.ffmpeg.vaapi.enabled"
+	echo "media.gmp-gmpopenh264.autoupdate"
+ 	echo "media.gmp-gmpopenh264.enabled"
+ 	echo "media.gmp-gmpopenh264.provider.enabled"
 }
 
 
@@ -707,7 +715,6 @@ set_yaru_icons_fedora(){
 main(){
     clear
     prepare_running_conditions
-    select_package_manager
 
     while true; do
         echo
