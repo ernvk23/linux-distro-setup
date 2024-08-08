@@ -313,7 +313,7 @@ customize_terminal(){
     #   None
     #
     # Arguments:
-    #   None
+    #	None
     #
     # Returns:
     #   None
@@ -590,7 +590,7 @@ install_additional_media_codecs_fedora(){
 		sudo dnf swap mesa-va-drivers mesa-va-drivers-freeworld
 		sudo dnf swap mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
 	elif grep -q GenuineIntel /proc/cpuinfo; then
-	  sudo dnf install intel-media-driver
+		sudo dnf install intel-media-driver
 	else
 		echo "There are only supported AMD and Intel platforms."
         echo "Exiting..."
