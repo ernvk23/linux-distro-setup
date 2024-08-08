@@ -31,7 +31,7 @@ This script automates the setup process after a fresh installation of Fedoara, D
     - Git with SSH key generation for github setup
 3. Flatpak Apps
     - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian, Blanket
-5. Fedora dnf optimization, performance tuning, yaru icon theme
+5. Fedora dnf optimization, add h.264 support, performance tuning, yaru icon theme
 
 #### Script's code snippet (shown menu)
 ```bash
@@ -58,9 +58,11 @@ echo "------------------------ FEDORA ONLY ------------------------------"
 echo "-------------------------------------------------------------------"
 echo "4- Configure dnf for faster downloads (*)"
 echo "-------------------------------------------------------------------"
-echo "5- Permanent set the governor mode to performance (*)"
+echo "5- Install additional non-free media codecs to enable h.264 support"
 echo "-------------------------------------------------------------------"
-echo "6- Set yaru icon theme (*)"
+echo "6- Permanent set the governor mode to performance (*)"
+echo "-------------------------------------------------------------------"
+echo "7- Set yaru icon theme (*)"
 echo "-------------------------------------------------------------------"
 echo "q- Quit"
 echo "==================================================================="
