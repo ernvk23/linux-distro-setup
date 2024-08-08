@@ -602,7 +602,7 @@ install_additional_media_codecs_fedora(){
 
 	# https://fedoraproject.org/wiki/OpenH264
 	# enable OpenH264 on firefox
-	#sudo dnf install mozilla-openh264
+	sudo dnf install mozilla-openh264
 
 	echo -e "${RED}On Firefox to enable HW acceleration make sure to enable it on settings, in plugins enable OpenH264 from Cisco and in about:config set the following fields to true:\n${ERED}"
 	echo "media.ffmpeg.vaapi.enabled"
