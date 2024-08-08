@@ -51,7 +51,7 @@ FLATPAK_PACKAGES=(
     "org.videolan.VLC"
     "com.github.unrud.VideoDownloader" 
     "com.opera.Opera"
-    "org.telegram.desktop"
+    #"org.telegram.desktop"
     "md.obsidian.Obsidian"
     "com.rafaelmardojai.Blanket"
 )
@@ -558,6 +558,52 @@ set_faster_downloads_fedora(){
 }
 
 
+install_additional_media_codecs_fedora(){
+    echo
+    echo "Installing additional media codecs..."
+	
+	if [[ "$distro" != "fedora" ]]; then
+        echo "Current distribution is not Fedora."
+        echo "Exiting..."
+        return 0
+    fi
+
+	# https://rpmfusion.org/Configuration
+	# Installing Free and Nonfree Repositories
+	sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+
+	# On Fedora, we default to use the openh264 library
+	sudo dnf config-manager --enable fedora-cisco-openh264
+
+	# RPM Fusion repositories also provide Appstream metadata to enable users to install # packages using Gnome Software/KDE Discover
+	sudo dnf update @core
+	
+	# https://rpmfusion.org/Howto/Multimedia#Hardware_codecs_with_AMD_.28mesa.29
+	# Switch to full ffmpeg
+	sudo dnf swap ffmpeg-free ffmpeg --allowerasing
+
+	# Install additional codecs
+	sudo dnf groupupdate multimedia --setop="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
+	sudo dnf groupupdate sound-and-video
+
+	if grep -q AuthenticAMD /proc/cpuinfo; then
+		sudo dnf swap mesa-va-drivers mesa-va-drivers-freeworld
+		sudo dnf swap mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
+	elif grep -q GenuineIntel /proc/cpuinfo; then
+	  sudo dnf install intel-media-driver
+	else
+		echo "There are only supported AMD and Intel platforms."
+        echo "Exiting..."
+        return 0
+	fi
+
+	# Make available vainfo
+	sudo dnf install libva-utils
+
+	echo -e "${RED}On Firefox to enable HW acceleration make sure to enable it on settings and in about:config set media.ffmpeg.vaapi.enabled to true.${ERED}"
+}
+
+
 set_governor_to_performance_fedora(){
     echo
     echo "Setting governor mode to performance..."
@@ -568,7 +614,7 @@ set_governor_to_performance_fedora(){
         return 0
     fi
 
-    # Check if the governor is already in performance mode and skip 
+    # Check if the governor is already in performance mode and skip
     # the service creation
     governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor > /dev/null) 
 
@@ -689,15 +735,17 @@ main(){
         echo "-------------------------------------------------------------------"
         echo "4- Configure dnf for faster downloads (*)"
         echo "-------------------------------------------------------------------"
-        echo "5- Permanent set the governor mode to performance (*)"
+		echo "5- Install additional non-free media codecs to enable h.264 support"
         echo "-------------------------------------------------------------------"
-        echo "6- Set yaru icon theme (*)"
+        echo "6- Permanent set the governor mode to performance (*)"
+        echo "-------------------------------------------------------------------"
+        echo "7- Set yaru icon theme (*)"
         echo "-------------------------------------------------------------------"
         echo "q- Quit"
         echo "==================================================================="
         echo "(*) - if not exists/set/configured"
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7 or q): " selection
         case "$selection" in
             1)
                 install_system_packages
@@ -719,9 +767,13 @@ main(){
                 set_faster_downloads_fedora
                 ;;
             5)
+
+				install_additional_media_codecs_fedora
+                ;;
+			6)
                 set_governor_to_performance_fedora
                 ;;
-            6)
+            7)
                 set_yaru_icons_fedora
                 ;;
             
