@@ -12,7 +12,7 @@ FEDORA_PACKAGES=(
     "gnome-tweaks"
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
-    "gnome-shell-extension-caffeine"
+    #"gnome-shell-extension-caffeine"
     "gnome-pomodoro"
 )
 
@@ -22,7 +22,7 @@ UBUNTU_PACKAGES=(
     "curl"
     "unzip"
     "gnome-tweaks"
-    "gnome-shell-extension-caffeine"
+    #"gnome-shell-extension-caffeine"
     "gnome-shell-pomodoro"
 )
 
@@ -37,7 +37,7 @@ DEBIAN_PACKAGES=(
 ADDITIONAL_DEBIAN_NON_WSL_PACKAGES=(
     "gnome-tweaks"
     "gnome-shell-extension-appindicator"
-    "gnome-shell-extension-caffeine"
+    #"gnome-shell-extension-caffeine"
     "gnome-shell-pomodoro"
 )
 
@@ -52,8 +52,8 @@ FLATPAK_PACKAGES=(
     "com.github.unrud.VideoDownloader" 
     "com.opera.Opera"
     #"org.telegram.desktop"
-    "md.obsidian.Obsidian"
-    "com.rafaelmardojai.Blanket"
+    #"md.obsidian.Obsidian"
+    #"com.rafaelmardojai.Blanket"
 )
 
 # Determine the distribution
@@ -602,7 +602,7 @@ install_additional_media_codecs_fedora(){
 
 	# https://fedoraproject.org/wiki/OpenH264
 	# enable OpenH264 on firefox
-	sudo dnf install mozilla-openh264
+	#sudo dnf install mozilla-openh264
 
 	echo -e "${RED}On Firefox to enable HW acceleration make sure to enable it on settings, in plugins enable OpenH264 from Cisco and in about:config set the following fields to true:\n${ERED}"
 	echo "media.ffmpeg.vaapi.enabled"
