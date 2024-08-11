@@ -89,7 +89,7 @@ prepare_running_conditions(){
         exit 1
     fi
 
-    # Check for pending restart
+    # Check for system's pending restart
     case "$distro" in
     "fedora")
         ! sudo dnf needs-restarting -r &> /dev/null
@@ -235,29 +235,25 @@ install_packages() {
     #   package_manager: str (The package manager to be used for installation)
     #
     # Arguments:
-    #   echo_log: bool (Whether to echo the status of already installed packages)
     #   packages: list (List of packages to be installed)
     #
     # Returns:
     #   None
     #############################
 
-    local echo_log="$1"
-    local packages=("${@:2}")
+    local packages=("$@")
 
     local to_install=()
+    # Check for availability, do not add to the list if it is already installed
     for package in "${packages[@]}"; do
-        if ! is_package_installed "$package" && is_package_available "$package"; then
-            to_install+=("$package")
-        elif ! is_package_available "$package"; then
+        if ! is_package_available "$package"; then
             echo "The package $package is not available in the remote repository."
             echo "Manual checking will be required."
             echo "Exiting..."
             exit 1
-        else
-            if "$echo_log"; then
-                echo "System package $package was already installed. Skipping."
-            fi
+        fi
+        if ! is_package_installed "$package" ; then
+            to_install+=("$package")
         fi
     done
     
@@ -300,7 +296,7 @@ install_system_packages() {
         ;;
     esac
     
-    install_packages "true" "${packages[@]}"
+    install_packages "${packages[@]}"
 }
 
 
@@ -321,25 +317,16 @@ customize_terminal(){
     #   None
     #############################
     echo
-    echo "Setting up terminal."
+    echo "Setting up terminal..."
     
     local dependencies=("zsh" "curl" "unzip" "git")
-    install_packages "false" "${dependencies[@]}"
+    install_packages "${dependencies[@]}"
 
     echo
     echo "Configuring zsh..."
 
     if [ -s ~/.zshrc ]; then
-        read -p "The file ~/.zhsrc already existed and isn't empty, would you like to replace it? (y/N)" choice
-        case "$choice" in
-            y|Y)
-                # It already replaces the existing one
-                populate_zshrc_file
-                ;;
-            *)
-                echo "Skipping."
-                ;;
-        esac
+        log_messages+="${RED}-The file ~/.zhsrc had an existing configuration. Skipped its modification.${ERED}\n(If you would like to overwrite the existing config, delete it and re-run this script with the same selected option)\n"
     else
         populate_zshrc_file
     fi
@@ -348,22 +335,13 @@ customize_terminal(){
     echo "Configuring zplug..."
 
     if [ -d ~/.zplug ]; then
-        read -p "The directory ~/.zplug already existed, would you like to replace it? (y/N) " choice
-        case "$choice" in
-            y|Y)
-                rm -rf ~/.zplug
-                curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
-                ;;
-            *)
-                echo "Skipping."
-                ;;
-        esac
+        log_messages+="${RED}-The directory ~/.zplug already existed. Skipped its creation.${ERED}\n(If you would like to overwrite the existing folder, delete it and re-run this script with the same selected option)\n"
     else
 	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
-        log_messages+="- Zplug was already sourced in ~/.zshrc. Verify manually the .zshrc file for missing pluggins\n"
+        log_messages+="${RED}-zplug was already sourced in ~/.zshrc. Skipped ~/.zshrc modification.${ERED}\n(If you don't notice any plugins working on the terminal, manually verify what's missing in the ~/.zshrc file)\n"
     else
         add_zplug_to_zshrc_file
     fi
@@ -377,9 +355,9 @@ customize_terminal(){
     font_path="$fonts_dir/$font_name"
 
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
-        echo "Skipping adding Caskaydia Nerd Font on WSL."
+        log_messages+="-There is no need to add Caskaydia Nerd Font on WSL. Skipped.\n"
     elif [ -d $font_path ]; then
-        echo "Directory $font_path already existed. Skipping."
+        log_messages+="-The directory $font_path already existed. Skipped its creation.\n"
     else
         # Download the latest Caskaydia Nerd Font
         curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
@@ -393,7 +371,7 @@ customize_terminal(){
     echo "Setting shell to zsh..."
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
-        echo "Zsh was already set as the default shell. Skipping."
+        log_messages+="-zsh was already set as the default shell. Skipped.\n"
     else
         chsh -s $(which zsh)
         suggest_restart=true
@@ -406,13 +384,13 @@ setup_neovim(){
     echo "Neovim setup..."
 
     if is_package_installed "neovim"; then
-        echo "Neovim was already installed. Skipping."
+        log_messages+="-Neovim was already installed. Skipped its installation.\n"
     else
         local dependencies=()
         case "$distro" in
         "fedora")
             dependencies=("git" "neovim")
-            install_packages "false" "${dependencies[@]}"
+            install_packages "${dependencies[@]}"
             ;;
         "debian" | "ubuntu")
             dependencies=(
@@ -425,7 +403,7 @@ setup_neovim(){
                 "curl"
                 "build-essential"
             )
-            install_packages "false" "${dependencies[@]}"
+            install_packages "${dependencies[@]}"
 
             cd ~/ && git clone https://github.com/neovim/neovim
             cd neovim && git checkout stable
@@ -436,15 +414,16 @@ setup_neovim(){
         esac
     fi
 
+
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        log_messages+="- The directory ${kickstart_path} already existed.\nA manual check will be required\n"
-        return 0
+        log_messages+="${RED}-The directory ${kickstart_path} already existed. Skipped kickstart neovim setup.${ERED}\n(If you would like to overwrite the existing nvim folder with kickstart, delete it and re-run this script with the same selected option)\n"
+    else
+        # Kickstart nvim
+        git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
     fi
 
-    # Kickstart nvim
-    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
 }
 
 
@@ -453,14 +432,14 @@ setup_git(){
     echo "Git setup..."
 
     local dependencies=("git")
-    install_packages "false" "${dependencies[@]}"
+    install_packages "${dependencies[@]}"
 
     # Check if user.name is configured
     if [ -z "$(git config --get user.name)" ]; then
         read -p "Enter the username for your github account: " username
         git config --global user.name "$username"
     else
-        echo "An username was already set. Skipping."
+        log_messages+="-A git username was already set. Skipped.\n"
     fi
 
     # Check if user.email is configured
@@ -468,11 +447,11 @@ setup_git(){
         read -p "Enter the email for your github account: " email
         git config --global user.email "$email"
     else
-        echo "An email was already set. Skipping."
+        log_messages+="-A git email was already set. Skipped.\n"
     fi
 
     if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
-        log_messages+="- The directory ~/.ssh already existed and it is not empty.\nProceeding could potentially overwrite any existing ssh key. A manual check will be required\n"
+        log_messages+="${RED}-The directory ~/.ssh already existed and it was not empty. Skipped its creation.${ERED}\n(If you would like to overwrite the existing ~/.ssh folder, delete it (IT WILL ERASE YOUR EXISTING SSH KEYS) and re-run this script with the same selected option)\n"
         return 0
     fi
 
@@ -483,15 +462,13 @@ setup_git(){
     
     ssh-add ~/.ssh/id_ed25519
 
-    log_messages+="- Copy the following ssh key and add it to your github account; go to and follow from step 2:\n"
-    log_messages+="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n"
-    log_messages+="$(cat ~/.ssh/id_ed25519.pub)\n"
+    log_messages+="${RED}-Copy the following ssh key and add it to your github account; go to and follow from step 2:\nhttps://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n$(cat ~/.ssh/id_ed25519.pub)\n${ERED}"
 }
 
 
 install_flatpak_packages() {
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
-        echo "Skipping flatpak installation on WSL."
+        log_messages+="-Skipped flatpak installation on WSL.\n"
         return 0
     fi
 
@@ -502,25 +479,25 @@ install_flatpak_packages() {
     if ! is_package_installed "flatpak"; then
         local dependencies=("flatpak" "gnome-software-plugin-flatpak")        
         
-        install_packages "false" "${dependencies[@]}"
+        install_packages "${dependencies[@]}"
         
         # Add flathub remote if not already added
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         
         # Inform the user about the required restart
-        log_messages+="- Flatpak was successfully installed, a restart will be required before installing flatpak packages\n"
+        log_messages+="${RED}-Flatpak was successfully installed, a restart will be required before installing flatpak packages\n${ERED}"
         suggest_restart=true
         return 0
     fi
 
     local to_install=()
     for package in "${FLATPAK_PACKAGES[@]}"; do
-	    if ! is_flatpak_package_installed "$package" && is_flatpak_package_available "$package"; then
-		    to_install+=("$package")
-	    elif ! is_flatpak_package_available "$package"; then
-		    echo "Flatpak package $package is not available in the remote repository. Skipping."
+	    if is_flatpak_package_available "$package"; then
+            if ! is_flatpak_package_installed "$package"; then
+		        to_install+=("$package")
+            fi
 	    else
-		    echo "Flatpak package $package was already installed. Skipping."
+		    log_messages+="-The flatpak package $package was not available in the remote repository. Skipped its installation.\n"
 	    fi
     done
 
@@ -531,7 +508,7 @@ install_flatpak_packages() {
                 flatpak install -y --noninteractive flathub "${to_install[@]}"
                 ;;
             *)
-                echo "Skipping."
+                echo "Skipped."
                 ;;
         esac
     fi
@@ -550,11 +527,12 @@ set_faster_downloads_fedora(){
 
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
-        echo "The values were already present in /etc/dnf/dnf.conf"
-    else
-        echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
-        suggest_restart=true
+        log_messages+="-The values max_parallel_donwloads and fastestmirror were already present in /etc/dnf/dnf.conf. Skipped.\n"
+        return 0
     fi
+
+    echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
+    suggest_restart=true
 }
 
 
@@ -587,14 +565,13 @@ install_additional_media_codecs_fedora(){
 	sudo dnf groupupdate -y sound-and-video
 
 	if grep -q AuthenticAMD /proc/cpuinfo; then
-            sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
-            sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
+        sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
+        sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
 	elif grep -q GenuineIntel /proc/cpuinfo; then
-            sudo dnf install -y intel-media-driver
+        sudo dnf install -y intel-media-driver
 	else
-            echo "There are only supported AMD and Intel platforms."
-            echo "Exiting..."
-            return 0
+        log_messages+="The installation of aditional media codecs was skipped due to the support of only AMD and Intel platforms.\n"
+        return 0
 	fi
 
 	# Make available vainfo (not necessary)
@@ -604,11 +581,7 @@ install_additional_media_codecs_fedora(){
 	# enable OpenH264 on firefox
 	sudo dnf install -y mozilla-openh264
 
-	log_messages+="- To enable HW acceleration on Firefox you should:\n\t Make sure to enable it on settings\n\t Enable OpenH264 add-on from Cisco on Firefox's Plugins\n\t In Firefox's about:config set the following fields to true:\n"
-	log_messages+="media.ffmpeg.vaapi.enabled\n"
-	log_messages+="media.gmp-gmpopenh264.autoupdate\n"
- 	log_messages+="media.gmp-gmpopenh264.enabled\n"
- 	log_messages+="media.gmp-gmpopenh264.provider.enabled\n"
+	log_messages+="${RED}-To enable hardware acceleration on Firefox you should:${ERED}\n Make sure to enable it on settings\n Enable OpenH264 add-on (from Cisco) on Firefox's Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
 }
 
 
@@ -624,11 +597,10 @@ set_governor_to_performance_fedora(){
 
     # Check if the governor is already in performance mode and skip
     # the service creation
-    governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor > /dev/null) 
+    governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor) 
 
     if [ "$governor" = "performance" ]; then
-        echo "The CPU scaling governor was already set to 'performance'."
-        echo "There is no need to create a startup service for it. Skipping."
+        log_messages+="-The CPU scaling governor was already set to 'performance'\nThere was no need to create a startup service for it. Skipped.\n"
         return 0
     fi
     
@@ -661,25 +633,28 @@ EOF
 )
 
     if [ -f "$script_path" ]; then
-        echo "$script_name already existed in $script_dir. Skipping."
-    else
-        mkdir "$script_dir" && touch "$script_path"
-        echo "$script_content" > "$script_path"
-        sudo chmod +x "$script_path"
+        log_messages+="-The $script_name already existed in $script_dir.\nThere was no need to create it. Skipped.\n"
+        return 0
     fi
+
+    mkdir "$script_dir" && touch "$script_path"
+    echo "$script_content" > "$script_path"
+    sudo chmod +x "$script_path"
 
     if [ -f "$service_path" ]; then
-        log_messages+= "- $service_name already existed in $service_dir. Skipped.\n${RED}Manual checking will be required.\nYou are advised to run:\nsudo systemctl status $service_name\n"
-    else
-        sudo touch "$service_path"
-        echo "$service_content" | sudo tee "$service_path" > /dev/null
-        sudo chmod +x "$service_path"
-
-        sudo systemctl daemon-reload > /dev/null
-        sudo systemctl enable "$service_name" > /dev/null
-        sudo systemctl start "$service_name" > /dev/null
-        suggest_restart=true
+        log_messages+="${RED}-The $service_name already existed in $service_dir.\nThere was no need to create it. Skipped.\nManual checking will be required.\nYou are advised to run:\nsudo systemctl status $service_name\n${ERED}"
+        return 0
     fi
+
+    sudo touch "$service_path"
+    echo "$service_content" | sudo tee "$service_path" > /dev/null
+    sudo chmod +x "$service_path"
+
+    sudo systemctl daemon-reload > /dev/null
+    sudo systemctl enable "$service_name" > /dev/null
+    sudo systemctl start "$service_name" > /dev/null
+    suggest_restart=true
+
 }
 
 
@@ -697,12 +672,12 @@ set_yaru_icons_fedora(){
 
     local icon_theme='Yaru-prussiangreen-dark'
     if [[ "$current_icon_theme" == *Yaru* ]]; then
-        echo "$current_icon_theme icons were already enabled. Skipping."
+        log_messages+="-The $current_icon_theme icons were already enabled. Skipped.\n"
         return 0
     fi
 
-    local dependencies=("yaru-theme")        
-    install_packages "false" "${dependencies[@]}"
+    local dependencies=("yaru-theme") 
+    install_packages "${dependencies[@]}"
 
     #gsettings set org.gnome.desktop.interface gtk-theme 'Yaru-prussiangreen-dark'
     #gsettings set org.gnome.desktop.wm.preferences theme 'Yaru'
@@ -793,17 +768,18 @@ main(){
                 ;;
         esac
         
+        echo
+        echo "-----------------------------Summary-------------------------------"
+        echo -e "${log_messages}"
         echo "-------------------------------------------------------------------"
-        echo "Summary"
-        echo "-------------------------------------------------------------------"
-        echo -e "${RED}${log_messages}${ERED}"
-        echo "-------------------------------------------------------------------"
+
         if "$suggest_restart"; then
             echo "Some changes need a system restart to take effect."
             echo "Please restart your system to finish."
             echo "Exiting..."
             exit 0
         fi
+        echo "READ the above summary before continuing, pay attention to the RED ones."
         read -p "Press Enter to continue..."
     done
 }
