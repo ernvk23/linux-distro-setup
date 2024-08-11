@@ -581,7 +581,7 @@ install_additional_media_codecs_fedora(){
 	# enable OpenH264 on firefox
 	sudo dnf install -y mozilla-openh264
 
-	log_messages+="${RED}-To enable hardware acceleration on Firefox you should:${ERED}\n Make sure to enable it on settings\n Enable OpenH264 add-on (from Cisco) on Firefox's Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
+	log_messages+="-To enable hardware acceleration on Firefox (optional but highly advised) you should:\n Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true\n Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons&Themes->Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all (if you enabled HW on settings there is no need here)\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
 }
 
 
