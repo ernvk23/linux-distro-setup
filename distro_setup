@@ -9,11 +9,12 @@ FEDORA_PACKAGES=(
     "python3-pip"
     "btop"
     "nvtop"
+    "powertop"
     "gnome-tweaks"
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
-    #"gnome-shell-extension-caffeine"
     "gnome-pomodoro"
+    #"gnome-shell-extension-caffeine"
 )
 
 UBUNTU_PACKAGES=(
@@ -22,8 +23,8 @@ UBUNTU_PACKAGES=(
     "curl"
     "unzip"
     "gnome-tweaks"
-    #"gnome-shell-extension-caffeine"
     "gnome-shell-pomodoro"
+    #"gnome-shell-extension-caffeine"
 )
 
 DEBIAN_PACKAGES=(
@@ -37,8 +38,8 @@ DEBIAN_PACKAGES=(
 ADDITIONAL_DEBIAN_NON_WSL_PACKAGES=(
     "gnome-tweaks"
     "gnome-shell-extension-appindicator"
-    #"gnome-shell-extension-caffeine"
     "gnome-shell-pomodoro"
+    #"gnome-shell-extension-caffeine"
 )
 
 FLATPAK_PACKAGES=(
@@ -182,6 +183,7 @@ alias ll='ls -lah --color=auto'
 alias grep='grep --color=auto'
 alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
 alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
+alias vbat='sudo powertop --time=10'
 EOF
 )
     echo "$zshrc_content" > "$zshrc_path"
@@ -361,7 +363,7 @@ customize_terminal(){
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
-        echo -e "${RED}Zplug was already sourced in ~/.zshrc. Verify manually the .zshrc file for missing pluggins.${ERED}"
+        log_messages+="- Zplug was already sourced in ~/.zshrc. Verify manually the .zshrc file for missing pluggins\n"
     else
         add_zplug_to_zshrc_file
     fi
@@ -437,7 +439,7 @@ setup_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        echo -e "${RED}The directory ${kickstart_path} already existed.\nA manual check will be required.${ERED}"
+        log_messages+="- The directory ${kickstart_path} already existed.\nA manual check will be required\n"
         return 0
     fi
 
@@ -470,7 +472,7 @@ setup_git(){
     fi
 
     if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
-        echo -e "${RED}The directory ~/.ssh already existed and it is not empty.\nProceeding could potentially overwrite any existing ssh key. A manual check will be required.${ERED}"
+        log_messages+="- The directory ~/.ssh already existed and it is not empty.\nProceeding could potentially overwrite any existing ssh key. A manual check will be required\n"
         return 0
     fi
 
@@ -481,11 +483,9 @@ setup_git(){
     
     ssh-add ~/.ssh/id_ed25519
 
-    echo -e "${RED}Copy the following ssh key and add it to your github account; go to and follow from step 2:${ERED}"
-    echo "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
-            
-    echo
-    cat ~/.ssh/id_ed25519.pub
+    log_messages+="- Copy the following ssh key and add it to your github account; go to and follow from step 2:\n"
+    log_messages+="https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n"
+    log_messages+="$(cat ~/.ssh/id_ed25519.pub)\n"
 }
 
 
@@ -508,7 +508,7 @@ install_flatpak_packages() {
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         
         # Inform the user about the required restart
-        echo -e "${RED}Flatpak was installed, a restart will be required before installing flatpak packages.${ERED}"
+        log_messages+="- Flatpak was successfully installed, a restart will be required before installing flatpak packages\n"
         suggest_restart=true
         return 0
     fi
@@ -587,14 +587,14 @@ install_additional_media_codecs_fedora(){
 	sudo dnf groupupdate -y sound-and-video
 
 	if grep -q AuthenticAMD /proc/cpuinfo; then
-		sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
-		sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
+            sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
+            sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
 	elif grep -q GenuineIntel /proc/cpuinfo; then
-		sudo dnf install -y intel-media-driver
+            sudo dnf install -y intel-media-driver
 	else
-		echo "There are only supported AMD and Intel platforms."
-        echo "Exiting..."
-        return 0
+            echo "There are only supported AMD and Intel platforms."
+            echo "Exiting..."
+            return 0
 	fi
 
 	# Make available vainfo (not necessary)
@@ -604,11 +604,11 @@ install_additional_media_codecs_fedora(){
 	# enable OpenH264 on firefox
 	sudo dnf install -y mozilla-openh264
 
-	echo -e "${RED}On Firefox to enable HW acceleration make sure to enable it on settings, in plugins enable OpenH264 from Cisco and in about:config set the following fields to true:\n${ERED}"
-	echo "media.ffmpeg.vaapi.enabled"
-	echo "media.gmp-gmpopenh264.autoupdate"
- 	echo "media.gmp-gmpopenh264.enabled"
- 	echo "media.gmp-gmpopenh264.provider.enabled"
+	log_messages+="- To enable HW acceleration on Firefox you should:\n\t Make sure to enable it on settings\n\t Enable OpenH264 add-on from Cisco on Firefox's Plugins\n\t In Firefox's about:config set the following fields to true:\n"
+	log_messages+="media.ffmpeg.vaapi.enabled\n"
+	log_messages+="media.gmp-gmpopenh264.autoupdate\n"
+ 	log_messages+="media.gmp-gmpopenh264.enabled\n"
+ 	log_messages+="media.gmp-gmpopenh264.provider.enabled\n"
 }
 
 
@@ -669,9 +669,7 @@ EOF
     fi
 
     if [ -f "$service_path" ]; then
-        echo "$service_name already existed in $service_dir. Skipping."
-        echo -e "${RED}Manual checking will be required.${ERED}"
-        echo -e "You are advised to run:\nsudo systemctl status $service_name"
+        log_messages+= "- $service_name already existed in $service_dir. Skipped.\n${RED}Manual checking will be required.\nYou are advised to run:\nsudo systemctl status $service_name\n"
     else
         sudo touch "$service_path"
         echo "$service_content" | sudo tee "$service_path" > /dev/null
@@ -717,6 +715,7 @@ main(){
     prepare_running_conditions
 
     while true; do
+        log_messages=""
         echo
         echo "==================================================================="
         echo "Options"
@@ -742,7 +741,7 @@ main(){
         echo "-------------------------------------------------------------------"
         echo "4- Configure dnf for faster downloads (*)"
         echo "-------------------------------------------------------------------"
-	echo "5- Install additional non-free media codecs to enable h.264 support"
+	    echo "5- Install additional non-free media codecs to enable h.264 support"
         echo "-------------------------------------------------------------------"
         echo "6- Permanent set the governor mode to performance (*)"
         echo "-------------------------------------------------------------------"
@@ -790,17 +789,20 @@ main(){
                 ;;
             *)
                 echo "Invalid selection."
+                continue
                 ;;
         esac
         
-        echo
+        echo "-------------------------------------------------------------------"
+        echo "Summary"
+        echo "-------------------------------------------------------------------"
+        echo -e "${RED}${log_messages}${ERED}"
+        echo "-------------------------------------------------------------------"
         if "$suggest_restart"; then
             echo "Some changes need a system restart to take effect."
             echo "Please restart your system to finish."
             echo "Exiting..."
             exit 0
-        else
-            echo "Finished!"
         fi
         read -p "Press Enter to continue..."
     done
