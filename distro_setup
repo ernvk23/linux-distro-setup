@@ -814,7 +814,7 @@ main(){
                 ;;
             
             6)
-                if ! ask_user_confirmation "You selected to set the power mode to performance permantely. Would you like to proceed?"; then
+                if ! ask_user_confirmation "You selected to set the power mode to performance permanently. Would you like to proceed?"; then
                     continue
                 fi
                 set_governor_to_performance_fedora
@@ -833,7 +833,7 @@ main(){
                 disable_ppd_color_change_fedora
                 ;;
             q)
-                echo "Exiting..."
+                clean
                 exit 0
                 ;;
             *)
