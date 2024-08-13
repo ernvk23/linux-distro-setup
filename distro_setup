@@ -213,7 +213,7 @@ bindkey "$terminfo[kcud1]" history-substring-search-down
 
 # zplug - install/load new plugins when zsh is started or reloaded
 if ! zplug check; then
-    echo "zplug wants to install the plugins sourced in the .zshrc file. Proceed? [y/N]: "
+    echo -e "There are plugins in the ~/.zshrc file that are not currently installed.\nWould you like to install them? [y/N]: "
 	if read -q; then
 	    echo; zplug install
 	fi
@@ -280,6 +280,7 @@ install_system_packages() {
 
     echo
     echo "Installing distro packages..."
+    
 
     case "$distro" in
     "fedora")
@@ -520,14 +521,13 @@ set_faster_downloads_fedora(){
     echo "Configuring dnf..."
     
     if [[ "$distro" != "fedora" ]]; then
-        echo "Current distribution is not Fedora."
-        echo "Exiting..."
+        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
         return 0
     fi
 
     # Check if the values are already present
-    if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf && grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
-        log_messages+="-The values max_parallel_donwloads and fastestmirror were already present in /etc/dnf/dnf.conf. Skipped.\n"
+    if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf || grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
+        log_messages+="-Either max_parallel_donwloads or fastestmirror was already present in /etc/dnf/dnf.conf. Skipped the dnf.conf modification."
         return 0
     fi
 
@@ -541,8 +541,7 @@ install_additional_media_codecs_fedora(){
     echo "Installing additional media codecs..."
 	
     if [[ "$distro" != "fedora" ]]; then
-        echo "Current distribution is not Fedora."
-        echo "Exiting..."
+        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
         return 0
     fi
 
@@ -590,8 +589,7 @@ set_governor_to_performance_fedora(){
     echo "Setting governor mode to performance..."
     
     if [[ "$distro" != "fedora" ]]; then
-        echo "Current distribution is not Fedora."
-        echo "Exiting..."
+        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
         return 0
     fi
 
@@ -663,8 +661,7 @@ set_yaru_icons_fedora(){
     echo "Setting yaru icons... "
 
     if [[ "$distro" != "fedora" ]]; then
-        echo "Current distribution is not Fedora."
-        echo "Exiting..."
+        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
         return 0
     fi
 
@@ -685,18 +682,71 @@ set_yaru_icons_fedora(){
 }
 
 
+disable_ppd_color_change_fedora(){
+    # Laptops with integrated Radeon graphics have a dedicated hardware function
+    # to decrease panel power consumption in exchange for color accuracy. This
+    # function is used when the system is on battery and the user has selected
+    # the "balanced" or "power-saver" profiles.
+    # Read current val with cat /sys/module/amdgpu/parameters/abmlevel
+    # -1 for 'auto' (let PPD decide)
+    # 0 for 'AC' and 'performance' (full brightness)
+    # 1 for 'balanced' (good balance and got better battery consuption than with 2, weird)
+    # 3 for 'power save' (way to aggresive with colors)
+    # 4 (I won't even try)
+    # "https://www.kernel.org/doc/html/v5.10/gpu/amdgpu.html"
+    # "https://gitlab.freedesktop.org/3v1n0/power-profiles-daemon"
+    echo
+    echo "Disabling gnome power-profile-daemon (PPD) color change... "
+
+    if [[ "$distro" != "fedora" ]]; then
+        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
+        return 0
+    fi
+
+    if ! grep -q AuthenticAMD /proc/cpuinfo; then
+        log_messages+="Current machine is not AMD-based. Skipped action."
+        return 0
+    fi
+
+    # File path
+    GRUB_FILE="/etc/default/grub"
+
+    if grep -q "amdgpu.abmlevel" "$GRUB_FILE"; then
+        log_messages+="${RED}- amdgpu.abmlevel already existed in $GRUB_FILE.\n Verify manually its value and change it to 0 (to disable PPD from modifying colors). Skipped.${ERED}"
+        return 0
+    fi
+
+    sudo sed -i '/GRUB_CMDLINE_LINUX/s/"\(.*\)"/"\1 amdgpu.abmlevel=0"/' "$GRUB_FILE"
+    if [ $? -eq 0 ]; then
+        sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+        suggest_restart=true
+    fi
+}
+
+
+ask_user_confirmation() {
+    local prompt="$1"
+    local response
+
+    read -p "$prompt (y/n): " response
+    case $response in
+        [Yy]* ) return 0;;
+        [Nn]* ) return 1;;
+        * ) echo "Invalid response. Please answer y/Y or n/N."; return 1;;
+    esac
+}
+
+
 main(){
     clear
     prepare_running_conditions
+    clear
 
     while true; do
         log_messages=""
-        echo
-        echo "==================================================================="
-        echo "Options"
+        echo "--------------------------- Options -------------------------------"
         echo "-------------------------------------------------------------------"
-        echo "1- System setup"
-        echo "-------------------------------------------------------------------"
+        echo "1- Minimal system setup"
         echo "  . install required dependencies"
         echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
         echo "  . create a default .zshrc (*)"
@@ -712,32 +762,38 @@ main(){
         echo "-------------------------------------------------------------------"
         echo "3- Full system setup (option 1 and 2)"
         echo "-------------------------------------------------------------------"
-        echo "------------------------ FEDORA ONLY ------------------------------"
-        echo "-------------------------------------------------------------------"
-        echo "4- Configure dnf for faster downloads (*)"
-        echo "-------------------------------------------------------------------"
-	    echo "5- Install additional non-free media codecs to enable h.264 support"
-        echo "-------------------------------------------------------------------"
+        echo "---------------------------- Fedora -------------------------------"
+	    echo "4- Install additional non-free media codecs to enable h.264 support"
+        echo "5- Configure dnf for faster downloads (*)"
         echo "6- Permanent set the governor mode to performance (*)"
-        echo "-------------------------------------------------------------------"
         echo "7- Set yaru icon theme (*)"
+        echo "8- Disable gnome power-profile-daemon (PPD) color change (*)"
         echo "-------------------------------------------------------------------"
         echo "q- Quit"
-        echo "==================================================================="
+        echo "-------------------------------------------------------------------"
         echo "(*) - if not exists/set/configured"
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8 or q): " selection
         case "$selection" in
             1)
+                if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
+                    continue
+                fi
                 install_system_packages
                 customize_terminal
                 setup_neovim
                 setup_git
                 ;;
             2)
+                if ! ask_user_confirmation "You selected to install the flatpak packages. Would you like to proceed?"; then
+                    continue
+                fi
                 install_flatpak_packages
                 ;;
             3)
+                if ! ask_user_confirmation "You selected to perform a full system setup. Would you like to proceed?"; then
+                    continue
+                fi
                 install_system_packages
                 customize_terminal
                 setup_neovim
@@ -745,41 +801,57 @@ main(){
                 setup_git
                 ;;
             4)
-                set_faster_downloads_fedora
-                ;;
-            5)
-
+                if ! ask_user_confirmation "You selected to install additional media codecs. Would you like to proceed?"; then
+                    continue
+                fi
                 install_additional_media_codecs_fedora
                 ;;
+            5)
+                if ! ask_user_confirmation "You selected to configure the system for faster donwloads. Would you like to proceed?"; then
+                    continue
+                fi
+                set_faster_downloads_fedora
+                ;;
+            
             6)
+                if ! ask_user_confirmation "You selected to set the power mode to performance permantely. Would you like to proceed?"; then
+                    continue
+                fi
                 set_governor_to_performance_fedora
                 ;;
             7)
+                if ! ask_user_confirmation "You selected to set yaru icons as default. Would you like to proceed?"; then
+                        continue
+                fi
                 set_yaru_icons_fedora
                 ;;
             
+            8)
+                if ! ask_user_confirmation "You selected to disable gnome power profile color changing. Would you like to proceed?"; then
+                    continue
+                fi
+                disable_ppd_color_change_fedora
+                ;;
             q)
                 echo "Exiting..."
                 exit 0
                 ;;
             *)
-                echo "Invalid selection."
+                echo
                 continue
                 ;;
         esac
         
+        if "$suggest_restart"; then
+            log_messages+="${RED}-Some changes need a system restart to take effect. Please RESTART your system to finish."
+        fi
+
         echo
         echo "-----------------------------Summary-------------------------------"
         echo -e "${log_messages}"
         echo "-------------------------------------------------------------------"
 
-        if "$suggest_restart"; then
-            echo "Some changes need a system restart to take effect."
-            echo "Please restart your system to finish."
-            echo "Exiting..."
-            exit 0
-        fi
-        echo "READ the above summary before continuing, pay attention to the RED ones."
+        echo -e "You are advised to READ the above summary before continuing, pay attention to the RED ones.\nYou can also find them by scrolling up if you would like to keep performing actions."
         read -p "Press Enter to continue..."
     done
 }
