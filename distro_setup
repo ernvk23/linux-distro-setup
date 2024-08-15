@@ -842,7 +842,7 @@ main(){
         esac
         
         if "$suggest_restart"; then
-            log_messages+="${RED}-Some changes need a system restart to take effect. Please RESTART your system to finish."
+            log_messages+="${RED}-Some changes need a system restart to take effect. Please RESTART your system to finish.\n${ERED}"
         fi
 
         echo
