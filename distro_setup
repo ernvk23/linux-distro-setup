@@ -184,6 +184,9 @@ alias grep='grep --color=auto'
 alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
 alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
 alias vbat='sudo powertop --time=10'
+alias warpc='warp-cli connect'
+alias warpd='warp-cli disconnect'
+alias warps='warp-cli status'
 EOF
 )
     echo "$zshrc_content" > "$zshrc_path"
@@ -452,7 +455,7 @@ setup_git(){
     fi
 
     if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
-        log_messages+="${RED}-While setting up git it was found that the directory ~/.ssh already existed and it was not empty. Skipped its creation.\n A manual check will be required.\n${ERED}\n"
+        log_messages+="${RED}-While setting up git it was found that the directory ~/.ssh already existed and it was not empty. Skipped its creation.\n A manualcheck will be required.\n${ERED}\n"
         return 0
     fi
 
@@ -521,13 +524,13 @@ set_faster_downloads_fedora(){
     echo "Configuring systems's dnf for faster downloads..."
     
     if [[ "$distro" != "fedora" ]]; then
-        log_messages+="-Current distribution: $distro was not Fedora. Skipped configuring systems's dnf for faster donwloads\n."
+        log_messages+="-Current distribution: $distro was not Fedora. Skipped configuring systems's dnf for faster downloads\n."
         return 0
     fi
 
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf || grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
-        log_messages+="-Either max_parallel_downloads or fastestmirror was already present in /etc/dnf/dnf.conf. Skipped configuring systems's dnf for faster donwloads\n."
+        log_messages+="-Either max_parallel_downloads or fastestmirror was already present in /etc/dnf/dnf.conf. Skipped configuring systems's dnf for faster downloads\n."
         return 0
     fi
 
@@ -723,6 +726,40 @@ disable_ppd_color_change_fedora(){
     fi
 }
 
+install_cloudflare_warp_fedora(){
+    echo
+    echo "Installing cloudfare warp... "
+
+    if [[ "$distro" != "fedora" ]]; then
+        log_messages+="-Current distribution: $distro is not Fedora. Skipped installing cloudfare warp.\n"
+        return 0
+    fi
+
+    # Add repository
+
+    if ! dnf repolist | grep -q cloudflare-warp-stable; then
+        sudo dnf config-manager --add-repo -y https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo
+    fi
+
+    sudo dnf install -y cloudflare-warp
+
+    local resolved_path="/etc/systemd/resolved.conf"
+    
+    local resolved_content=$(cat <<- 'EOF'
+[Resolve]
+ResolveUnicastSingleLabel=yes
+EOF
+)
+    if [ -s "$resolved_path" ]; then
+        log_messages+="${RED}-While installing cloudflare warp, it was found that the file $resolved_path had an existing configuration. Skipped its modification.\n A manual check will be required.\n${ERED}\n"
+        return 0
+    fi
+
+    echo "$resolved_content" > "$resolved_path"
+    sudo systemctl restart systemd-resolved.service
+    log_messages+="-Cloudflare warp was succesfully installed, use 'warp-cli --help' for more.\n (If you used the script's option 1 or 3 for generating the zsh config, after you register warp using 'warp-cli register'\nyou could also use the following shortcuts:\n\t warpc for connecting\n\t warpd for disconnecing\n\t warps for status)\n"
+}
+
 
 ask_user_confirmation() {
     local prompt="$1"
@@ -763,16 +800,17 @@ main(){
         echo "-------------------------------------------------------------------"
         echo "---------------------------- Fedora -------------------------------"
 	    echo "4- Install additional non-free media codecs to enable h.264 support"
-        echo "5- Configure systems's dnf for faster donwloads (*)"
+        echo "5- Configure systems's dnf for faster downloads (*)"
         echo "6- Permanent set the governor mode to performance (*)"
         echo "7- Set yaru icon theme (*)"
-        echo "8- Disable gnome power-profile-daemon (PPD) color change (*)"
+        echo "8- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
+        echo "9- Install cloudflare warp (VPN)(*)"
         echo "-------------------------------------------------------------------"
         echo "q- Quit"
         echo "-------------------------------------------------------------------"
         echo "(*) - if not exists/set/configured"
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9 or q): " selection
         case "$selection" in
             1)
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
@@ -806,7 +844,7 @@ main(){
                 install_additional_media_codecs_fedora
                 ;;
             5)
-                if ! ask_user_confirmation "You selected to configure the system's dnf for faster donwloads. Would you like to proceed?"; then
+                if ! ask_user_confirmation "You selected to configure the system's dnf for faster downloads. Would you like to proceed?"; then
                     continue
                 fi
                 set_faster_downloads_fedora
@@ -830,6 +868,12 @@ main(){
                     continue
                 fi
                 disable_ppd_color_change_fedora
+                ;;
+            9)
+                if ! ask_user_confirmation "You selected to install cloudflare warp. Would you like to proceed?"; then
+                    continue
+                fi
+                install_cloudflare_warp_fedora
                 ;;
             q)
                 echo "Exited."
