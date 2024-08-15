@@ -248,7 +248,7 @@ install_packages() {
     for package in "${packages[@]}"; do
         if ! is_package_available "$package"; then
             echo "The package $package is not available in the remote repository."
-            echo "Manual checking will be required."
+            echo "A manual check will be required."
             echo "Exiting..."
             exit 1
         fi
@@ -452,7 +452,7 @@ setup_git(){
     fi
 
     if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
-        log_messages+="${RED}-While setting up git it was found that the directory ~/.ssh already existed and it was not empty. Skipped its creation.${ERED}\n(If you would like to overwrite the existing ~/.ssh folder, delete it (IT WILL ERASE YOUR EXISTING SSH KEYS) and re-run this script with the same selected option)\n"
+        log_messages+="${RED}-While setting up git it was found that the directory ~/.ssh already existed and it was not empty. Skipped its creation.\n A manual check will be required.\n${ERED}\n"
         return 0
     fi
 
@@ -640,7 +640,7 @@ EOF
     sudo chmod +x "$script_path"
 
     if [ -f "$service_path" ]; then
-        log_messages+="${RED}-The $service_name already existed in $service_dir.\nThere was no need to create it. Skipped.\nManual checking will be required.\nYou are advised to run:\nsudo systemctl status $service_name\n${ERED}"
+        log_messages+="${RED}-The $service_name already existed in $service_dir.\nThere was no need to create it. Skipped.\n A manual check will be required.\nYou are advised to run:\nsudo systemctl status $service_name\n${ERED}"
         return 0
     fi
 
