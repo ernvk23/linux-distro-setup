@@ -92,7 +92,7 @@ prepare_running_conditions(){
     # Check for system's pending restart
     case "$distro" in
     "fedora")
-        ! sudo dnf needs-restarting -r &> /dev/null
+        ! dnf needs-restarting -r &> /dev/null
         ;;
     "debian" | "ubuntu")
         [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
@@ -105,7 +105,7 @@ prepare_running_conditions(){
     fi
 
     # Select package manager and update its cache
-    echo "Updating package manager cache..."
+    echo "Updating system's package manager cache..."
     case "$distro" in
     "fedora")
         sudo dnf makecache -y
@@ -281,7 +281,6 @@ install_system_packages() {
     echo
     echo "Installing distro packages..."
     
-
     case "$distro" in
     "fedora")
         packages=("${FEDORA_PACKAGES[@]}")
@@ -327,7 +326,7 @@ customize_terminal(){
     echo "Configuring zsh..."
 
     if [ -s ~/.zshrc ]; then
-        log_messages+="${RED}-The file ~/.zhsrc had an existing configuration. Skipped its modification.${ERED}\n(If you would like to overwrite the existing config, delete it and re-run this script with the same selected option)\n"
+        log_messages+="${RED}-While configuring zsh, it was found that the file ~/.zhsrc had an existing configuration. Skipped its modification.\n${ERED}(If you would like to overwrite the existing config, delete it and re-run this script with the same selected option)\n"
     else
         populate_zshrc_file
     fi
@@ -336,20 +335,20 @@ customize_terminal(){
     echo "Configuring zplug..."
 
     if [ -d ~/.zplug ]; then
-        log_messages+="${RED}-The directory ~/.zplug already existed. Skipped its creation.${ERED}\n(If you would like to overwrite the existing folder, delete it and re-run this script with the same selected option)\n"
+        log_messages+="${RED}-While configuring zplug, it was found that the directory ~/.zplug already existed. Skipped its creation.\n${ERED}(If you would like to overwrite the existing folder, delete it and re-run this script with the same selected option)\n"
     else
 	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
-        log_messages+="${RED}-zplug was already sourced in ~/.zshrc. Skipped ~/.zshrc modification.${ERED}\n(If you don't notice any plugins working on the terminal, manually verify what's missing in the ~/.zshrc file)\n"
+        log_messages+="${RED}-While configuring zplug, it was found that zplug was already sourced in ~/.zshrc. Skipped ~/.zshrc modification.\n${ERED}(If you don't notice any plugins working on the terminal, manually verify what's missing in the ~/.zshrc file)\n"
     else
         add_zplug_to_zshrc_file
     fi
 
 
     echo
-    echo "Adding Caskaydia Nerd Font to system fonts..."
+    echo "Adding Caskaydia Nerd Font to the system fonts..."
     
     font_name="CascadiaMono"
     fonts_dir="/usr/share/fonts"
@@ -358,7 +357,7 @@ customize_terminal(){
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
         log_messages+="-There is no need to add Caskaydia Nerd Font on WSL. Skipped.\n"
     elif [ -d $font_path ]; then
-        log_messages+="-The directory $font_path already existed. Skipped its creation.\n"
+        log_messages+="-While adding Caskaydia Nerd Font to the system fonts it was found that the directory $font_path already existed. Skipped its creation.\n"
     else
         # Download the latest Caskaydia Nerd Font
         curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
@@ -366,13 +365,14 @@ customize_terminal(){
         rm ~/$font_name.zip
         # Update the font cache
         sudo fc-cache -f -v > /dev/null
+        log_messages+="${RED}-Caskaydia Nerd Font was successfully added to system's fonts.\n In order to use it, set it up on your terminal's Preferences, and in 'Custom font' pick 'CaskaydiaMono Nerd Font Mono'.\n${ERED}"
     fi
 
     echo
-    echo "Setting shell to zsh..."
+    echo "Setting the shell to zsh..."
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
-        log_messages+="-zsh was already set as the default shell. Skipped.\n"
+        log_messages+="-While setting the shell to zsh it was found that it was already set as the default shell. Skipped.\n"
     else
         chsh -s $(which zsh)
         suggest_restart=true
@@ -419,7 +419,7 @@ setup_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        log_messages+="${RED}-The directory ${kickstart_path} already existed. Skipped kickstart neovim setup.${ERED}\n(If you would like to overwrite the existing nvim folder with kickstart, delete it and re-run this script with the same selected option)\n"
+        log_messages+="${RED}-While setting up neovim it was found that the directory ${kickstart_path} already existed. Skipped kickstart neovim setup.${ERED}\n(If you would like to overwrite the existing nvim folder with kickstart, delete it and re-run this script with the same selected option)\n"
     else
         # Kickstart nvim
         git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
@@ -452,7 +452,7 @@ setup_git(){
     fi
 
     if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
-        log_messages+="${RED}-The directory ~/.ssh already existed and it was not empty. Skipped its creation.${ERED}\n(If you would like to overwrite the existing ~/.ssh folder, delete it (IT WILL ERASE YOUR EXISTING SSH KEYS) and re-run this script with the same selected option)\n"
+        log_messages+="${RED}-While setting up git it was found that the directory ~/.ssh already existed and it was not empty. Skipped its creation.${ERED}\n(If you would like to overwrite the existing ~/.ssh folder, delete it (IT WILL ERASE YOUR EXISTING SSH KEYS) and re-run this script with the same selected option)\n"
         return 0
     fi
 
@@ -463,7 +463,7 @@ setup_git(){
     
     ssh-add ~/.ssh/id_ed25519
 
-    log_messages+="${RED}-Copy the following ssh key and add it to your github account; go to and follow from step 2:\nhttps://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n$(cat ~/.ssh/id_ed25519.pub)\n${ERED}"
+    log_messages+="${RED}-To allow your PC connecting to Github via SSH, you should:\n Copy the following ssh key and add it to your github account; go to and follow from step 2:\nhttps://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n$(cat ~/.ssh/id_ed25519.pub)\n${ERED}"
 }
 
 
@@ -518,16 +518,16 @@ install_flatpak_packages() {
 
 set_faster_downloads_fedora(){
     echo
-    echo "Configuring dnf..."
+    echo "Configuring systems's dnf for faster downloads..."
     
     if [[ "$distro" != "fedora" ]]; then
-        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
+        log_messages+="-Current distribution: $distro was not Fedora. Skipped configuring systems's dnf for faster donwloads\n."
         return 0
     fi
 
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf || grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
-        log_messages+="-Either max_parallel_donwloads or fastestmirror was already present in /etc/dnf/dnf.conf. Skipped the dnf.conf modification."
+        log_messages+="-Either max_parallel_downloads or fastestmirror was already present in /etc/dnf/dnf.conf. Skipped configuring systems's dnf for faster donwloads\n."
         return 0
     fi
 
@@ -541,7 +541,7 @@ install_additional_media_codecs_fedora(){
     echo "Installing additional media codecs..."
 	
     if [[ "$distro" != "fedora" ]]; then
-        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
+        log_messages+="-Current distribution: $distro was not Fedora. Skipped installing additonal media codecs.\n"
         return 0
     fi
 
@@ -569,7 +569,7 @@ install_additional_media_codecs_fedora(){
 	elif grep -q GenuineIntel /proc/cpuinfo; then
         sudo dnf install -y intel-media-driver
 	else
-        log_messages+="The installation of aditional media codecs was skipped due to the support of only AMD and Intel platforms.\n"
+        log_messages+="-Current machine is not AMD or Intel based. Skipped installing additonal media codecs.\n"
         return 0
 	fi
 
@@ -586,10 +586,10 @@ install_additional_media_codecs_fedora(){
 
 set_governor_to_performance_fedora(){
     echo
-    echo "Setting governor mode to performance..."
+    echo "Setting the governor mode to performance..."
     
     if [[ "$distro" != "fedora" ]]; then
-        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
+        log_messages+="Current distribution: $distro is not Fedora. Skipped setting the governor mode to performance.\n"
         return 0
     fi
 
@@ -661,7 +661,7 @@ set_yaru_icons_fedora(){
     echo "Setting yaru icons... "
 
     if [[ "$distro" != "fedora" ]]; then
-        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
+        log_messages+="Current distribution: $distro is not Fedora. Skipped setting yaru icons.\n"
         return 0
     fi
 
@@ -699,12 +699,12 @@ disable_ppd_color_change_fedora(){
     echo "Disabling gnome power-profile-daemon (PPD) color change... "
 
     if [[ "$distro" != "fedora" ]]; then
-        log_messages+="Current distribution: $distro is not Fedora. Skipped action."
+        log_messages+="-Current distribution: $distro is not Fedora. Skipped disabling gnome power-profile-daemon (PPD) color change.\n"
         return 0
     fi
 
     if ! grep -q AuthenticAMD /proc/cpuinfo; then
-        log_messages+="Current machine is not AMD-based. Skipped action."
+        log_messages+="-Current machine is not AMD-based. Skipped disabling gnome power-profile-daemon (PPD) color change.\n"
         return 0
     fi
 
@@ -712,7 +712,7 @@ disable_ppd_color_change_fedora(){
     GRUB_FILE="/etc/default/grub"
 
     if grep -q "amdgpu.abmlevel" "$GRUB_FILE"; then
-        log_messages+="${RED}- amdgpu.abmlevel already existed in $GRUB_FILE.\n Verify manually its value and change it to 0 (to disable PPD from modifying colors). Skipped.${ERED}"
+        log_messages+="${RED}-amdgpu.abmlevel already existed in $GRUB_FILE.\n Verify manually its value and change it to 0 (to disable PPD from modifying colors). Skipped.${ERED}"
         return 0
     fi
 
@@ -747,13 +747,12 @@ main(){
         echo "--------------------------- Options -------------------------------"
         echo "-------------------------------------------------------------------"
         echo "1- Minimal system setup"
-        echo "  . install required dependencies"
-        echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
-        echo "  . create a default .zshrc (*)"
-        echo "  . install zplug and add zplug config to .zhsrc (*)" 
-        echo "  . set zsh as default user shell (*)"
-        echo "  . install neovim (*)"
-        echo "  . download and set kickstart nvim (*)"
+        echo "  . install distro packages"
+        echo "  . add Caskaydia Nerd Font to system's fonts (manual setup required) (*)"
+        echo "  . create a default zsh configuration file (*)"
+        echo "  . install zplug as zsh pluggin manager (*)" 
+        echo "  . set zsh as the default user shell (*)"
+        echo "  . install neovim set it up with kickstart nvim (*)"
         echo "  . install git (*)"
         echo "  . set git global user and name (*)"
         echo "  . generate a ssh key (further manual actions are required on github) (*)"
@@ -764,7 +763,7 @@ main(){
         echo "-------------------------------------------------------------------"
         echo "---------------------------- Fedora -------------------------------"
 	    echo "4- Install additional non-free media codecs to enable h.264 support"
-        echo "5- Configure dnf for faster downloads (*)"
+        echo "5- Configure systems's dnf for faster donwloads (*)"
         echo "6- Permanent set the governor mode to performance (*)"
         echo "7- Set yaru icon theme (*)"
         echo "8- Disable gnome power-profile-daemon (PPD) color change (*)"
@@ -807,7 +806,7 @@ main(){
                 install_additional_media_codecs_fedora
                 ;;
             5)
-                if ! ask_user_confirmation "You selected to configure the system for faster donwloads. Would you like to proceed?"; then
+                if ! ask_user_confirmation "You selected to configure the system's dnf for faster donwloads. Would you like to proceed?"; then
                     continue
                 fi
                 set_faster_downloads_fedora
@@ -833,7 +832,7 @@ main(){
                 disable_ppd_color_change_fedora
                 ;;
             q)
-                clean
+                echo "Exited."
                 exit 0
                 ;;
             *)
