@@ -806,7 +806,7 @@ main(){
         echo "6- Permanent set the governor mode to performance (*)"
         echo "7- Set yaru icon theme (*)"
         echo "8- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
-        echo "9- Install cloudflare warp (VPN)(*)"
+        echo "9- Install cloudflare warp (VPN) (*)"
         echo "-------------------------------------------------------------------"
         echo "q- Quit"
         echo "-------------------------------------------------------------------"

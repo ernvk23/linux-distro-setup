@@ -24,28 +24,26 @@ This script automates the setup process after a fresh installation of Fedoara, D
 1. Common packages
     - python3, python3-pip, pip, git, curl, unzip
 2. Fedora Packages
-    - Dash to Dock, AppIndicator, Tweaks, Pomodoro, Caffeine, btop, nvtop
+    - Dash to Dock, AppIndicator, Tweaks, Pomodoro, Caffeine, btop, nvtop, powertop, ~~caffeine~~
 3. Desktop Tools
     - Terminal configuration (zsh, syntax highlighting, autosuggestions, history search, powerlevel10k theme)
     - Neovim with kickstart.nvim
     - Git with SSH key generation for github setup
 3. Flatpak Apps
-    - Extensions, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera,  Telegram, Obsidian, Blanket
-5. Fedora dnf optimization, add h.264 support, performance tuning, yaru icon theme
+    - Extension Manager, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera, ~~Telegram~~, ~~Obsidian~~, ~~Blanket~~
+5. Fedora dnf optimization, add h.264 support, performance tuning, yaru icon theme, cloudflare-warp
 
 #### Script's code snippet (shown menu)
 ```bash
-echo "Options"
+echo "--------------------------- Options -------------------------------"
 echo "-------------------------------------------------------------------"
-echo "1- System setup"
-echo "-------------------------------------------------------------------"
-echo "  . install required dependencies"
-echo "  . download CaskaydiaMono Nerd Font (manual setup required) (*)"
-echo "  . create a default .zshrc (*)"
-echo "  . install zplug and add zplug config to .zhsrc (*)" 
-echo "  . set zsh as default user shell (*)"
-echo "  . install neovim (*)"
-echo "  . download and set kickstart nvim (*)"
+echo "1- Minimal system setup"
+echo "  . install distro packages"
+echo "  . add Caskaydia Nerd Font to system's fonts (manual setup required) (*)"
+echo "  . create a default zsh configuration file (*)"
+echo "  . install zplug as zsh pluggin manager (*)" 
+echo "  . set zsh as the default user shell (*)"
+echo "  . install neovim set it up with kickstart nvim (*)"
 echo "  . install git (*)"
 echo "  . set git global user and name (*)"
 echo "  . generate a ssh key (further manual actions are required on github) (*)"
@@ -54,18 +52,16 @@ echo "2- Install flatpak packages (*)"
 echo "-------------------------------------------------------------------"
 echo "3- Full system setup (option 1 and 2)"
 echo "-------------------------------------------------------------------"
-echo "------------------------ FEDORA ONLY ------------------------------"
-echo "-------------------------------------------------------------------"
-echo "4- Configure dnf for faster downloads (*)"
-echo "-------------------------------------------------------------------"
-echo "5- Install additional non-free media codecs to enable h.264 support"
-echo "-------------------------------------------------------------------"
+echo "---------------------------- Fedora -------------------------------"
+echo "4- Install additional non-free media codecs to enable h.264 support"
+echo "5- Configure systems's dnf for faster downloads (*)"
 echo "6- Permanent set the governor mode to performance (*)"
-echo "-------------------------------------------------------------------"
 echo "7- Set yaru icon theme (*)"
+echo "8- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
+echo "9- Install cloudflare warp (VPN) (*)"
 echo "-------------------------------------------------------------------"
 echo "q- Quit"
-echo "==================================================================="
+echo "-------------------------------------------------------------------"
 echo "(*) - if not exists/set/configured"
 ```
 
