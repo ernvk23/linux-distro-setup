@@ -53,8 +53,8 @@ FLATPAK_PACKAGES=(
     "com.github.unrud.VideoDownloader" 
     "com.opera.Opera"
     #"org.telegram.desktop"
-    #"md.obsidian.Obsidian"
-    #"com.rafaelmardojai.Blanket"
+    "md.obsidian.Obsidian"
+    "com.rafaelmardojai.Blanket"
 )
 
 # Determine the distribution
