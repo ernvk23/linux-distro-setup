@@ -563,8 +563,9 @@ install_additional_media_codecs_fedora(){
 	sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 
 	# Install additional codecs
-	sudo dnf groupupdate -y multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
-	sudo dnf groupupdate -y sound-and-video --setopt="install_weak_deps=False"
+	sudo dnf update -y @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
+	# In the documentation it is used the first cmd but it fails due to non existing sound-and-video group
+	sudo dnf update -y @sound-and-video &> /dev/null || sudo dnf install -y @sound-and-video
 
 	if grep -q AuthenticAMD /proc/cpuinfo; then
         sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
@@ -577,7 +578,7 @@ install_additional_media_codecs_fedora(){
 	fi
 
 	# Make available vainfo (not necessary)
-	#sudo dnf install libva-utils
+	sudo dnf install -y libva-utils
 
 	# https://fedoraproject.org/wiki/OpenH264
 	# enable OpenH264 on firefox
