@@ -563,8 +563,8 @@ install_additional_media_codecs_fedora(){
 	sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 
 	# Install additional codecs
-	sudo dnf groupupdate -y multimedia --setop="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
-	sudo dnf groupupdate -y sound-and-video
+	sudo dnf groupupdate -y multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
+	sudo dnf groupupdate -y sound-and-video --setopt="install_weak_deps=False"
 
 	if grep -q AuthenticAMD /proc/cpuinfo; then
         sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
@@ -582,6 +582,9 @@ install_additional_media_codecs_fedora(){
 	# https://fedoraproject.org/wiki/OpenH264
 	# enable OpenH264 on firefox
 	sudo dnf install -y mozilla-openh264
+    
+    # Fix gnome camera not showing up after installing media codecs
+    systemctl --user restart pipewire pipewire-pulse wireplumber
 
 	log_messages+="-To enable hardware acceleration on Firefox (optional but highly advised) you should:\n Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true\n Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons&Themes->Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all (if you enabled HW on settings there is no need here)\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
 }
