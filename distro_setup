@@ -760,6 +760,10 @@ EOF
     echo "$resolved_content" | sudo tee "$resolved_path" > /dev/null
 
     sudo systemctl restart systemd-resolved.service
+    
+    # Register a new session with cloudflare warp
+    sudo warp-cli registration new
+
     log_messages+="-Cloudflare warp was succesfully installed, use 'warp-cli --help' for more.\n (If you used the script's option 1 or 3 for generating the zsh config, after you register warp using 'warp-cli register'\nyou could also use the following shortcuts:\n\t warpc for connecting\n\t warpd for disconnecing\n\t warps for status)\n"
 }
 
