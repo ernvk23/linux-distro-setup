@@ -812,6 +812,7 @@ main(){
         echo "7- Set yaru icon theme (*)"
         echo "8- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
         echo "9- Install cloudflare warp (VPN) (*)"
+        echo -e "  . WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
         echo "-------------------------------------------------------------------"
         echo "q- Quit"
         echo "-------------------------------------------------------------------"
