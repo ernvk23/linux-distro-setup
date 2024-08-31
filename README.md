@@ -24,14 +24,20 @@ This script automates the setup process after a fresh installation of Fedoara, D
 1. Common packages
     - python3, python3-pip, pip, git, curl, unzip
 2. Fedora Packages
-    - Dash to Dock, AppIndicator, Tweaks, Pomodoro, Caffeine, btop, nvtop, powertop, ~~caffeine~~
+    - Dash to Dock, AppIndicator, Tweaks, Pomodoro, Caffeine, btop, nvtop, powertop
 3. Desktop Tools
     - Terminal configuration (zsh, syntax highlighting, autosuggestions, history search, powerlevel10k theme)
     - Neovim with kickstart.nvim
     - Git with SSH key generation for github setup
 3. Flatpak Apps
-    - Extension Manager, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera, ~~Telegram~~, ~~Obsidian~~, ~~Blanket~~
-5. Fedora dnf optimization, add h.264 support, performance tuning, yaru icon theme, cloudflare-warp
+    - Extension Manager, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera, Obsidian, Blanket
+5. Others (Fedora)
+    - add h.264 support for HW acceleration
+    - allow faster dnf downloads
+    - set permanently governor's mode to performance
+    - change yaru icons theme color
+    - disable PPD color change
+    - install cloudflare warp (VPN like) (WARNING!!! breaks gnome camera)
 
 #### Script's code snippet (shown menu)
 ```bash
@@ -58,7 +64,7 @@ echo "5- Configure systems's dnf for faster downloads (*)"
 echo "6- Permanent set the governor mode to performance (*)"
 echo "7- Set yaru icon theme (*)"
 echo "8- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
-echo "9- Install cloudflare warp (VPN) (*)"
+echo "9- Install cloudflare warp (VPN like) (WARNING!!! breaks gnome camera) (*)"
 echo "-------------------------------------------------------------------"
 echo "q- Quit"
 echo "-------------------------------------------------------------------"

@@ -14,7 +14,7 @@ FEDORA_PACKAGES=(
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-pomodoro"
-    #"gnome-shell-extension-caffeine"
+    "gnome-shell-extension-caffeine"
 )
 
 UBUNTU_PACKAGES=(
@@ -24,7 +24,7 @@ UBUNTU_PACKAGES=(
     "unzip"
     "gnome-tweaks"
     "gnome-shell-pomodoro"
-    #"gnome-shell-extension-caffeine"
+    "gnome-shell-extension-caffeine"
 )
 
 DEBIAN_PACKAGES=(
@@ -39,7 +39,7 @@ ADDITIONAL_DEBIAN_NON_WSL_PACKAGES=(
     "gnome-tweaks"
     "gnome-shell-extension-appindicator"
     "gnome-shell-pomodoro"
-    #"gnome-shell-extension-caffeine"
+    "gnome-shell-extension-caffeine"
 )
 
 FLATPAK_PACKAGES=(
@@ -52,7 +52,6 @@ FLATPAK_PACKAGES=(
     "org.videolan.VLC"
     "com.github.unrud.VideoDownloader" 
     "com.opera.Opera"
-    #"org.telegram.desktop"
     "md.obsidian.Obsidian"
     "com.rafaelmardojai.Blanket"
 )
@@ -811,7 +810,7 @@ main(){
         echo "6- Permanent set the governor mode to performance (*)"
         echo "7- Set yaru icon theme (*)"
         echo "8- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
-        echo "9- Install cloudflare warp (VPN) (*)"
+        echo "9- Install cloudflare warp (VPN like) (*)"
         echo -e "  . WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
         echo "-------------------------------------------------------------------"
         echo "q- Quit"
