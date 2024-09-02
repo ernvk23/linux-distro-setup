@@ -137,11 +137,11 @@ is_package_available() {
     local package=$1
     case "$distro" in
         "fedora")
-            # avoid the package manager to halt with repo related prompts 
-            dnf info "$package" 2> /dev/null
+            # avoid the package manager to halt with repo related prompts
+            dnf info -y "$package" > /dev/null
             ;;
         "debian" | "ubuntu")
-            apt-cache show "$package" 2> /dev/null
+            apt-cache show -y "$package" > /dev/null
             ;;
     esac
 }
@@ -565,7 +565,7 @@ install_additional_media_codecs_fedora(){
 	# Install additional codecs
 	sudo dnf update -y @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
 	# In the documentation it is used the first cmd but it fails due to non existing sound-and-video group
-	sudo dnf update -y @sound-and-video 2> /dev/null || sudo dnf install -y @sound-and-video
+	sudo dnf update -y @sound-and-video > /dev/null || sudo dnf install -y @sound-and-video
 
 	if grep -q AuthenticAMD /proc/cpuinfo; then
         sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
