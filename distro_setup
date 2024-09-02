@@ -261,16 +261,18 @@ install_packages() {
         echo -e "${BOLD_MAGENTA}You have 15 seconds to respond. Press 'y/Y' to proceed, or any other key to abort.${NC}"
         
         # Read user input with a timeout
-        read -t 15 -n 1 -r -p "Proceed? (y/Y/wait): " choice
-        echo
-        
-        if [[ ! "$choice" =~ [yY] && -n "$choice" ]]; then
-            echo -e "Packages installations aborted. Either perform a manual check\n or re-run the script and allow installing the required packages."
-            echo "Exiting..."
-            exit 1
+        if read -t 15 -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice; then
+            echo
+            if [[ "$choice" =~ [yY] ]]; then
+                sudo $package_manager install -y "${to_install[@]}" #> /dev/null
+            else
+                echo -e "Packages installations aborted. Either perform a manual check\n or re-run the script and allow installing the required packages."
+                echo "Exiting..."
+                exit 1
+            fi
+        else
+            sudo $package_manager install -y "${to_install[@]}" #> /dev/null
         fi
-        
-        sudo $package_manager install -y "${to_install[@]}" #> /dev/null
     fi
 }
 
@@ -508,14 +510,16 @@ install_flatpak_packages() {
         echo -e "${BOLD_MAGENTA}You have 15 seconds to respond. Press 'y/Y' to proceed, or any other key to abort.${NC}"
         
         # Read user input with a timeout
-        read -t 15 -n 1 -r -p "Proceed? (y/Y/wait): " choice
-        echo
-        if [[ ! "$choice" =~ [yY] && -n "$choice" ]]; then
-            echo "Skipped."
-            return
+        if read -t 15 -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice; then
+            echo
+            if [[ "$choice" =~ [yY] ]]; then
+                flatpak install -y --noninteractive flathub "${to_install[@]}"
+            else
+                echo "Skipped."
+            fi
+        else
+            flatpak install -y --noninteractive flathub "${to_install[@]}"
         fi
-        
-        flatpak install -y --noninteractive flathub "${to_install[@]}"
     fi
 }
 
@@ -786,7 +790,6 @@ ask_user_confirmation() {
     local response
 
     read -p "$prompt (y/n): " response
-    echo
     case $response in
         [Yy]* ) return 0;;
         [Nn]* ) return 1;;
@@ -833,7 +836,6 @@ main(){
         echo "(*) - if not exists/set/configured"
 
         read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9 or q): " selection
-        echo
         case "$selection" in
             1)
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
@@ -918,7 +920,7 @@ main(){
         echo "-------------------------------------------------------------------"
 
         echo -e "You are advised to READ the above summary before continuing, pay attention to the BOLD_MAGENTA ones.\nYou can also find them by scrolling up if you would like to keep performing actions."
-        read -p -s "Press Enter to continue..."
+        read -p "Press Enter to continue..."
     done
 }
 
