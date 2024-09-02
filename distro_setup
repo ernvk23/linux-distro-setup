@@ -248,7 +248,7 @@ install_packages() {
         if ! is_package_available "$package"; then
             echo "The package $package is not available in the remote repository."
             echo "A manual check will be required."
-            echo "Exiting..."
+            echo "Exiting..."   
             exit 1
         fi
         if ! is_package_installed "$package" ; then
@@ -258,7 +258,7 @@ install_packages() {
 
     if [[ "${#to_install[@]}" -gt 0 ]]; then
         echo "The following packages will be installed: ${to_install[*]}"
-        echo -e "${BOLD_MAGENTA}You have 15 seconds to respond. Press 'y/Y' to proceed, or any other key to abort.${NC}"
+        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait 15 seconds) to proceed or any other key to abort.${NC}"
         
         # Read user input with a timeout
         if read -t 15 -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice; then
@@ -507,7 +507,7 @@ install_flatpak_packages() {
 
     if [[ "${#to_install[@]}" -gt 0 ]]; then
         echo "The following Flatpak packages will be installed: ${to_install[*]}"
-        echo -e "${BOLD_MAGENTA}You have 15 seconds to respond. Press 'y/Y' to proceed, or any other key to abort.${NC}"
+        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait 15 seconds) to proceed or any other key to abort.${NC}"
         
         # Read user input with a timeout
         if read -t 15 -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice; then
