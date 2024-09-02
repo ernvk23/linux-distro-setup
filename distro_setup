@@ -137,10 +137,11 @@ is_package_available() {
     local package=$1
     case "$distro" in
         "fedora")
-            dnf info "$package" &> /dev/null
+            # avoid the package manager to halt with repo related prompts 
+            dnf info "$package" 2> /dev/null
             ;;
         "debian" | "ubuntu")
-            apt-cache show "$package" &> /dev/null
+            apt-cache show "$package" 2> /dev/null
             ;;
     esac
 }
@@ -439,34 +440,28 @@ setup_git(){
     install_packages "${dependencies[@]}"
 
     # Check if user.name is configured
-    if [ -z "$(git config --get user.name)" ]; then
-        read -p "Enter the username for your github account: " username
-        git config --global user.name "$username"
+    git_name="$(git config --get user.name)"
+    git_email="$(git config --get user.email)"
+
+    if [[ -n "$git_name" || -n "$git_email" ]]; then
+        log_messages+="-While seting up git it was found it had existing values. Skipped.\n A manual check will be required."
+        return
+    fi
+
+    read -p "Enter the username for your github account: " username
+    git config --global user.name "$username"
+
+    read -p "Enter the email for your github account: " email
+    git config --global user.email "$email"
+
+    if ssh-keygen -t ed25519 -C "$email" -f ~/.ssh/id_ed25519 -N ""; then
+        eval "$(ssh-agent -s)"
+        ssh-add ~/.ssh/id_ed25519
+
+        log_messages+="${BOLD_MAGENTA}-To allow your PC connecting to Github via SSH, you should:\n Copy the following ssh key and add it to your github account; go to and follow from step 2:\nhttps://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n$(cat ~/.ssh/id_ed25519.pub)\n${NC}"
     else
-        log_messages+="-A git username was already set. Skipped.\n"
+        log_messages+="-While seting up git the user cancelled the ssh key generation. Skipped.\n A manual check will be required."
     fi
-
-    # Check if user.email is configured
-    if [ -z "$(git config --get user.email)" ]; then
-        read -p "Enter the email for your github account: " email
-        git config --global user.email "$email"
-    else
-        log_messages+="-A git email was already set. Skipped.\n"
-    fi
-
-    if [ -d ~/.ssh ] && [ -n "$(ls -A ~/.ssh)" ]; then
-        log_messages+="${BOLD_MAGENTA}-While setting up git it was found that the directory ~/.ssh already existed and it was not empty. Skipped its creation.\n A manualcheck will be required.\n${NC}\n"
-        return 0
-    fi
-
-    echo -e "${BOLD_MAGENTA}On each prompt press <Enter> for accepting a default key filename and an empty passphrase.${NC}"
-    ssh-keygen -t ed25519 -C "$email"
-    
-    eval "$(ssh-agent -s)"
-    
-    ssh-add ~/.ssh/id_ed25519
-
-    log_messages+="${BOLD_MAGENTA}-To allow your PC connecting to Github via SSH, you should:\n Copy the following ssh key and add it to your github account; go to and follow from step 2:\nhttps://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n$(cat ~/.ssh/id_ed25519.pub)\n${NC}"
 }
 
 
@@ -570,7 +565,7 @@ install_additional_media_codecs_fedora(){
 	# Install additional codecs
 	sudo dnf update -y @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
 	# In the documentation it is used the first cmd but it fails due to non existing sound-and-video group
-	sudo dnf update -y @sound-and-video &> /dev/null || sudo dnf install -y @sound-and-video
+	sudo dnf update -y @sound-and-video 2> /dev/null || sudo dnf install -y @sound-and-video
 
 	if grep -q AuthenticAMD /proc/cpuinfo; then
         sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
