@@ -255,32 +255,13 @@ install_packages() {
             to_install+=("$package")
         fi
     done
-    
-
-    if [[ "${#to_install[@]}" -gt 0 ]]; then
-        echo "The following Flatpak packages will be installed: ${to_install[*]}"
-        echo -e "${BOLD_MAGENTA}You have 15 seconds to respond. Press 'y/Y' to proceed, or any other key to abort.${NC}"
-        # Read user input with a timeout
-        
-        read -t 15 -n 1 -r -s -p "Proceed? (y/Y/wait): " choice; then
-        echo
-        if [[ ! "$choice" =~ [yY] && -n "$choice" ]]; then
-            echo "Skipped."
-            return
-        fi
-        
-        flatpak install -y --noninteractive flathub "${to_install[@]}"
-    fi
-
-
-
 
     if [[ "${#to_install[@]}" -gt 0 ]]; then
         echo "The following packages will be installed: ${to_install[*]}"
         echo -e "${BOLD_MAGENTA}You have 15 seconds to respond. Press 'y/Y' to proceed, or any other key to abort.${NC}"
         
         # Read user input with a timeout
-        read -t 15 -n 1 -r -p "Proceed? (y/Y/wait): " choice; then
+        read -t 15 -n 1 -r -p "Proceed? (y/Y/wait): " choice
         echo
         
         if [[ ! "$choice" =~ [yY] && -n "$choice" ]]; then
@@ -527,7 +508,7 @@ install_flatpak_packages() {
         echo -e "${BOLD_MAGENTA}You have 15 seconds to respond. Press 'y/Y' to proceed, or any other key to abort.${NC}"
         
         # Read user input with a timeout
-        read -t 15 -n 1 -r -p "Proceed? (y/Y/wait): " choice; then
+        read -t 15 -n 1 -r -p "Proceed? (y/Y/wait): " choice
         echo
         if [[ ! "$choice" =~ [yY] && -n "$choice" ]]; then
             echo "Skipped."
