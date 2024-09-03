@@ -378,7 +378,9 @@ customize_terminal(){
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
         log_messages+="-While setting the shell to zsh it was found that it was already set as the default shell. Skipped.\n"
     else
-        chsh -s $(which zsh)
+        #chsh -s $(which zsh)
+        # Do not prompt the user again for a password
+        sudo chsh -s $(which zsh) $USER
         suggest_restart=true
     fi
 }
@@ -803,15 +805,15 @@ main(){
         echo "--------------------------- Options -------------------------------"
         echo "-------------------------------------------------------------------"
         echo "1- Minimal system setup"
+        echo "  . install git (*)"
+        echo "  . set git global user and name (*)"
+        echo "  . generate a ssh key (further manual actions are required on github) (*)"
         echo "  . install distro packages"
         echo "  . add Caskaydia Nerd Font to system's fonts (manual setup required) (*)"
         echo "  . create a default zsh configuration file (*)"
         echo "  . install zplug as zsh pluggin manager (*)" 
         echo "  . set zsh as the default user shell (*)"
         echo "  . install neovim set it up with kickstart nvim (*)"
-        echo "  . install git (*)"
-        echo "  . set git global user and name (*)"
-        echo "  . generate a ssh key (further manual actions are required on github) (*)"
         echo "-------------------------------------------------------------------"
         echo "2- Install flatpak packages (*)"
         echo "-------------------------------------------------------------------"
@@ -836,10 +838,10 @@ main(){
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
                     continue
                 fi
+                setup_git
                 install_system_packages
                 customize_terminal
                 setup_neovim
-                setup_git
                 ;;
             2)
                 if ! ask_user_confirmation "You selected to install the flatpak packages. Would you like to proceed?"; then
@@ -851,11 +853,11 @@ main(){
                 if ! ask_user_confirmation "You selected to perform a full system setup. Would you like to proceed?"; then
                     continue
                 fi
+                setup_git
                 install_system_packages
                 customize_terminal
                 setup_neovim
                 install_flatpak_packages
-                setup_git
                 ;;
             4)
                 if ! ask_user_confirmation "You selected to install additional media codecs. Would you like to proceed?"; then
