@@ -4,6 +4,7 @@
 
 BOLD_MAGENTA='\e[1;35m'
 NC='\e[0m'
+TIMEOUT=10
 
 FEDORA_PACKAGES=(
     "python3-pip"
@@ -138,10 +139,10 @@ is_package_available() {
     case "$distro" in
         "fedora")
             # avoid the package manager to halt with repo related prompts
-            dnf info -y "$package" > /dev/null
+            dnf info -y "$package" &> /dev/null
             ;;
         "debian" | "ubuntu")
-            apt-cache show -y "$package" > /dev/null
+            apt-cache show -y "$package" &> /dev/null
             ;;
     esac
 }
@@ -259,10 +260,10 @@ install_packages() {
 
     if [[ "${#to_install[@]}" -gt 0 ]]; then
         echo "The following packages will be installed: ${to_install[*]}"
-        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait 15 seconds) to proceed or any other key to abort.${NC}"
+        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed otherwise press any other key to abort.${NC}"
         
         # Read user input with a timeout
-        if read -t 15 -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice; then
+        if read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice; then
             echo
             if [[ "$choice" =~ [yY] ]]; then
                 sudo $package_manager install -y "${to_install[@]}" #> /dev/null
@@ -504,10 +505,10 @@ install_flatpak_packages() {
 
     if [[ "${#to_install[@]}" -gt 0 ]]; then
         echo "The following Flatpak packages will be installed: ${to_install[*]}"
-        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait 15 seconds) to proceed or any other key to abort.${NC}"
-        
+        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed otherwise press any other key to abort.${NC}"
+
         # Read user input with a timeout
-        if read -t 15 -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice; then
+        if read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice; then
             echo
             if [[ "$choice" =~ [yY] ]]; then
                 flatpak install -y --noninteractive flathub "${to_install[@]}"
@@ -805,9 +806,6 @@ main(){
         echo "--------------------------- Options -------------------------------"
         echo "-------------------------------------------------------------------"
         echo "1- Minimal system setup"
-        echo "  . install git (*)"
-        echo "  . set git global user and name (*)"
-        echo "  . generate a ssh key (further manual actions are required on github) (*)"
         echo "  . install distro packages"
         echo "  . add Caskaydia Nerd Font to system's fonts (manual setup required) (*)"
         echo "  . create a default zsh configuration file (*)"
@@ -817,28 +815,33 @@ main(){
         echo "-------------------------------------------------------------------"
         echo "2- Install flatpak packages (*)"
         echo "-------------------------------------------------------------------"
-        echo "3- Full system setup (option 1 and 2)"
+        echo "3- Git setup"
+        echo "  . install git (*)"
+        echo "  . set git global user and name (*)"
+        echo "  . generate a ssh key (further manual actions are required on github) (*)"
+        echo "-------------------------------------------------------------------"
+        echo "4- Full system setup (options included: 1,2,3)"
         echo "-------------------------------------------------------------------"
         echo "---------------------------- Fedora -------------------------------"
-	    echo "4- Install additional non-free media codecs to enable h.264 support"
-        echo "5- Configure systems's dnf for faster downloads (*)"
-        echo "6- Permanent set the governor mode to performance (*)"
-        echo "7- Set yaru icon theme (*)"
-        echo "8- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
-        echo "9- Install cloudflare warp (VPN like) (*)"
-        echo -e "  . WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
+	    echo "5- Install additional non-free media codecs to enable h.264 support"
+        echo "6- Configure systems's dnf for faster downloads (*)"
+        echo "7- Permanent set the governor mode to performance (*)"
+        echo "8- Set yaru icon theme (*)"
+        echo "9- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
         echo "-------------------------------------------------------------------"
+        echo "------------------ Fedora (unstable features) ---------------------"
+        echo "10- Install cloudflare warp (VPN like) (*)"
+        echo -e "  . WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
         echo "q- Quit"
         echo "-------------------------------------------------------------------"
         echo "(*) - if not exists/set/configured"
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9, 10 or q): " selection
         case "$selection" in
             1)
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
                     continue
                 fi
-                setup_git
                 install_system_packages
                 customize_terminal
                 setup_neovim
@@ -848,50 +851,56 @@ main(){
                     continue
                 fi
                 install_flatpak_packages
-                ;;
+                ;;  
             3)
-                if ! ask_user_confirmation "You selected to perform a full system setup. Would you like to proceed?"; then
+                if ! ask_user_confirmation "You selected setup git. Would you like to proceed?"; then
                     continue
                 fi
                 setup_git
+                ;;
+            4)
+                if ! ask_user_confirmation "You selected to perform a full system setup. Would you like to proceed?"; then
+                    continue
+                fi
                 install_system_packages
                 customize_terminal
                 setup_neovim
                 install_flatpak_packages
+                setup_git
                 ;;
-            4)
+            5)
                 if ! ask_user_confirmation "You selected to install additional media codecs. Would you like to proceed?"; then
                     continue
                 fi
                 install_additional_media_codecs_fedora
                 ;;
-            5)
+            6)
                 if ! ask_user_confirmation "You selected to configure the system's dnf for faster downloads. Would you like to proceed?"; then
                     continue
                 fi
                 set_faster_downloads_fedora
                 ;;
             
-            6)
+            7)
                 if ! ask_user_confirmation "You selected to set the power mode to performance permanently. Would you like to proceed?"; then
                     continue
                 fi
                 set_governor_to_performance_fedora
                 ;;
-            7)
+            8)
                 if ! ask_user_confirmation "You selected to set yaru icons as default. Would you like to proceed?"; then
                         continue
                 fi
                 set_yaru_icons_fedora
                 ;;
             
-            8)
+            9)
                 if ! ask_user_confirmation "You selected to disable gnome power profile color changing. Would you like to proceed?"; then
                     continue
                 fi
                 disable_ppd_color_change_fedora
                 ;;
-            9)
+            10)
                 if ! ask_user_confirmation "You selected to install cloudflare warp. Would you like to proceed?"; then
                     continue
                 fi
