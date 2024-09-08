@@ -604,17 +604,24 @@ enable_system_and_firefox_hw_acceleration_fedora(){
     }
 
     # Check for Firefox profiles
-    # Open Firefox Profile Manager if no profiles exist
+    # Create a Firefox profile if none exists
     if ! check_firefox_profiles; then
-        echo "No Firefox profile found. Opening Firefox profile manager..."
-        firefox -ProfileManager &
+        echo "No Firefox profile found. Creating a default profile..."
+        firefox --headless &> /dev/null &
         firefox_pid=$!
-        echo -e "${BOLD_MAGENTA}Please create a profile in the Firefox Profile Manager.\nAnd after creating it close the Profile Manager to continue...${NC}"
-        wait $firefox_pid
-
+        
+        # Wait for a short time to ensure Firefox has time to create the profile
+        sleep 5
+        
+        # Kill the Firefox process
+        kill $firefox_pid &>/dev/null
+        
+        # Wait for the process to fully terminate
+        wait $firefox_pid &>/dev/null
+        
         # Check again for profiles
         if ! check_firefox_profiles; then
-            echo "Still no Firefox profile found. Please run Firefox at least once before running this script."
+            echo "Failed to create a Firefox profile. Please run Firefox manually before running this script."
             exit 1
         fi
     fi
