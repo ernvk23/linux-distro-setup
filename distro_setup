@@ -25,7 +25,7 @@ UBUNTU_PACKAGES=(
     "unzip"
     "gnome-tweaks"
     "gnome-shell-pomodoro"
-    "gnome-shell-extension-caffeine"
+    "caffeine"
 )
 
 DEBIAN_PACKAGES=(
