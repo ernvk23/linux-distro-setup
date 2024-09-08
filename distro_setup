@@ -581,7 +581,7 @@ install_additional_media_codecs_fedora(){
 	fi
 
 	# Make available vainfo (not necessary)
-	#sudo dnf install -y libva-utils
+	sudo dnf install -y libva-utils
 
 	# https://fedoraproject.org/wiki/OpenH264
 	# enable OpenH264 on firefox
