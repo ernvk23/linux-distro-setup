@@ -542,6 +542,57 @@ set_faster_downloads_fedora(){
 }
 
 
+enable_users_firefox_hw_acceleration_fedora(){
+    echo
+    echo "Enable user's firefox HW acceleration..."
+    
+    if [[ "$distro" != "fedora" ]]; then
+        log_messages+="-Current distribution: $distro was not Fedora. Skipped configuring systems's dnf for faster downloads\n."
+        return 0
+    fi
+    firefox_dir="$HOME/.mozilla/firefox"
+
+    # Find the most recently modified profile directory
+    profile_path=$(find "$firefox_dir" -maxdepth 1 -type d -name "*.default*" -printf '%T@ %p\n' | sort -n | tail -1 | cut -f2- -d" ")
+
+    if [ -z "$profile_path" ]; then
+        echo "No Firefox profile found. Please run Firefox at least once before running this script."
+        exit 1
+    fi
+
+    echo "Using Firefox profile: $profile_path"
+    
+    # Backup the existing user.js file if it exists
+    if [ -f "$profile_path/user.js" ]; then
+        cp "$profile_path/user.js" "$profile_path/user.js.backup_$(date +%Y%m%d_%H%M%S)"
+    fi
+    
+    if ! vainfo 2>/dev/null | grep -q "AV1"; then
+        set_pref "media.av1.enabled" false
+    fi
+
+    set_pref "gfx.webrender.all" true
+    set_pref "media.ffmpeg.vaapi.enabled" true
+    set_pref "media.gmp-gmpopenh264.autoupdate" true
+    set_pref "media.gmp-gmpopenh264.enabled" true
+    set_pref "media.gmp-gmpopenh264.provider.enabled" true
+}
+
+
+# Function to set a preference in Firefox's user.js file
+set_pref() {
+    local pref=$1
+    local value=$2
+    local file="$profile_path/user.js"
+    
+    if [ -f "$file" ] && grep -q "user_pref(\"$pref\"," "$file"; then
+        sed -i "s|user_pref(\"$pref\",[^)]*)|user_pref(\"$pref\", $value)|" "$file"
+    else
+        echo "user_pref(\"$pref\", $value);" >> "$file"
+    fi
+}
+
+
 install_additional_media_codecs_fedora(){
     echo
     echo "Installing additional media codecs..."
@@ -587,8 +638,11 @@ install_additional_media_codecs_fedora(){
 	# enable OpenH264 on firefox
 	sudo dnf install -y mozilla-openh264
 
-	log_messages+="-To enable hardware acceleration on Firefox (optional but highly advised) you should:\n Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true\n Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons&Themes->Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all (if you enabled HW on settings there is no need here)\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
-    log_messages+="(You can use 'vainfo' to check for AV1 hardware support.\n Typically, YouTube enforces this format without considering your system's compatibility,\n which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false.\n However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true.)"
+    enable_users_firefox_hw_acceleration_fedora
+    
+    log_messages+="-Firefox HW acceleration enabled"
+	# log_messages+="-To enable hardware acceleration on Firefox (optional but highly advised) you should:\n Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true\n Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons&Themes->Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all (if you enabled HW on settings there is no need here)\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
+    # log_messages+="(You can use 'vainfo' to check for AV1 hardware support.\n Typically, YouTube enforces this format without considering your system's compatibility,\n which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false.\n However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true.)"
 }
 
 
