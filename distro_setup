@@ -139,10 +139,10 @@ is_package_available() {
     case "$distro" in
         "fedora")
             # avoid the package manager to halt with repo related prompts
-            dnf info -y "$package" &> /dev/null
+            dnf info "$package" &> /dev/null
             ;;
         "debian" | "ubuntu")
-            apt-cache show -y "$package" &> /dev/null
+            apt-cache show "$package" &> /dev/null
             ;;
     esac
 }
