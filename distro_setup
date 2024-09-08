@@ -546,9 +546,10 @@ set_faster_downloads_fedora(){
 
 
 
-install_additional_media_codecs_fedora(){
+
+enable_system_and_firefox_hw_acceleration_fedora(){
     echo
-    echo "Installing additional media codecs..."
+    echo "Enabling system's and Firefox hardware acceleration support..."
 	
     if [[ "$distro" != "fedora" ]]; then
         log_messages+="-Current distribution: $distro was not Fedora. Skipped installing additonal media codecs.\n"
@@ -575,7 +576,7 @@ install_additional_media_codecs_fedora(){
 	# Install additional codecs
 	sudo dnf update -y @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
 	# In the documentation it is used the first cmd but it fails due to non existing sound-and-video group
-	sudo dnf update -y @sound-and-video > /dev/null || sudo dnf install -y @sound-and-video
+	sudo dnf update -y @sound-and-video &> /dev/null || sudo dnf install -y @sound-and-video
 
 	if grep -q AuthenticAMD /proc/cpuinfo; then
         sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
@@ -590,51 +591,37 @@ install_additional_media_codecs_fedora(){
 	# Make available vainfo
 	sudo dnf install -y libva-utils
 
-    log_messages+="-Additional media codecs have been installed\n"
-    # log_messages+="-To enable hardware acceleration on Firefox (optional but highly advised) you should:\n Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true\n Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons&Themes->Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all (if you enabled HW on settings there is no need here)\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
-    # log_messages+="(You can use 'vainfo' to check for AV1 hardware support.\n Typically, YouTube enforces this format without considering your system's compatibility,\n which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false.\n However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true.)"
-
-}
-
-enable_firefox_hw_acceleration_fedora(){
-    echo
-    echo "Enabling Firefox's HW acceleration..."
+    log_messages+="-Additional non-free media codecs have been installed\n"
     
-    if [[ "$distro" != "fedora" ]]; then
-        log_messages+="-Current distribution: $distro was not Fedora. Skipped installing additonal media codecs.\n"
-        return 0
-    fi
+    # To enable hardware acceleration on Firefox (optional but highly advised) you should:\n Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true\n Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons&Themes->Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all (if you enabled HW on settings there is no need here)\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
+    # (You can use 'vainfo' to check for AV1 hardware support.\n Typically, YouTube enforces this format without considering your system's compatibility,\n which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false.\n However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true.)
 
-    local dependencies=("ffmpeg" "libva-utils")   
-
-    if grep -q AuthenticAMD /proc/cpuinfo; then
-        dependencies+=("mesa-va-drivers-freeworld")
-        dependencies+=("mesa-vdpau-drivers-freeworld")
-	elif grep -q GenuineIntel /proc/cpuinfo; then
-        dependencies+=("intel-media-driver")
-	else
-        log_messages+="-Current machine is not AMD or Intel based. Skipped enabling Firefox hw acceleration.\n"
-        return 0
-	fi
-
-    for dependency in "${dependencies[@]}"; do
-        if ! is_package_installed "$dependency" ; then
-            log_messages+="${BOLD_MAGENTA}-While enabling Firefox's HW acceleration the dependency $dependency was missing\nSkipped its modification.\n${NC}(If you haven't done so, you are encouraged to install first the additional media codecs\n otherwise a manual check will be required.)\n"
-            return 0
-        fi
-    done
-        
     firefox_dir="$HOME/.mozilla/firefox"
 
+    # Function to check for Firefox profiles
+    check_firefox_profiles() {
+        [ -d "$firefox_dir" ] && [ -n "$(find "$firefox_dir" -maxdepth 1 -type d -name "*.default*")" ]
+    }
+
+    # Check for Firefox profiles
+    # Open Firefox Profile Manager if no profiles exist
+    if ! check_firefox_profiles; then
+        echo "No Firefox profile found. Opening Firefox profile manager..."
+        firefox -ProfileManager &
+        firefox_pid=$!
+        echo -e "${BOLD_MAGENTA}Please create a profile in the Firefox Profile Manager.\nAnd after creating it close the Profile Manager to continue...${NC}"
+        wait $firefox_pid
+
+        # Check again for profiles
+        if ! check_firefox_profiles; then
+            echo "Still no Firefox profile found. Please run Firefox at least once before running this script."
+            exit 1
+        fi
+    fi
+     
     # Find the most recently modified profile directory
     profile_path=$(find "$firefox_dir" -maxdepth 1 -type d -name "*.default*" -printf '%T@ %p\n' | sort -n | tail -1 | cut -f2- -d" ")
     
-    if [ -z "$profile_path" ]; then
-        # Launch Firefox with the Profile Manager
-        log_messages+="${BOLD_MAGENTA}-No Firefox profile found. Please run Firefox at least once before running this script.\n$NC}"
-        return 0
-    fi
-
     # Backup the existing user.js file if it exists
     profile_file="$profile_path/user.js"
     if [ -f "$profile_file" ]; then
@@ -664,7 +651,8 @@ enable_firefox_hw_acceleration_fedora(){
         set_pref "media.av1.enabled" false
     fi
 
-    log_messages+="-Firefox's HW acceleration have been enabled\n"
+    log_messages+="-Firefox's HW acceleration have been enabled\n(You can check the file $profile_file to see the modified flags"
+
 }
 
 
@@ -803,7 +791,7 @@ disable_ppd_color_change_fedora(){
         return 0
     fi
 
-    sudo sed -i '/GRUB_CMDLINE_LINUX/s/"\(.*\)"/"\1 amdgpu.abmlevel=0"/' "$GRUB_FILE"
+    sudo sed -i '/GRUB_CMDLINE_LINUX/s/"\(.*\)"/"\1 amdgpu.abmlevel=1"/' "$GRUB_FILE"
     if [ $? -eq 0 ]; then
         sudo grub2-mkconfig -o /boot/grub2/grub.cfg
         suggest_restart=true
@@ -812,6 +800,7 @@ disable_ppd_color_change_fedora(){
 }
 
 install_cloudflare_warp_fedora(){
+    # WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
     echo
     echo "Installing cloudfare warp... "
 
@@ -884,41 +873,32 @@ main(){
 
     while true; do
         log_messages=""
-        echo "--------------------------- Options -------------------------------"
-        echo "-------------------------------------------------------------------"
+        echo "--------------------------- Setup Options ---------------------------"
         echo "1- Minimal system setup"
-        echo "  . install distro packages"
-        echo "  . add Caskaydia Nerd Font to system's fonts (manual setup required) (*)"
-        echo "  . create a default zsh configuration file (*)"
-        echo "  . install zplug as zsh pluggin manager (*)" 
-        echo "  . set zsh as the default user shell (*)"
-        echo "  . install neovim set it up with kickstart nvim (*)"
-        echo "-------------------------------------------------------------------"
-        echo "2- Install flatpak packages (*)"
-        echo "-------------------------------------------------------------------"
-        echo "3- Git setup"
-        echo "  . install git (*)"
-        echo "  . set git global user and name (*)"
-        echo "  . generate a ssh key (further manual actions are required on github) (*)"
-        echo "-------------------------------------------------------------------"
-        echo "4- Full system setup (options included: 1,2,3)"
-        echo "-------------------------------------------------------------------"
-        echo "---------------------------- Fedora -------------------------------"
-	    echo "5- Install additional non-free media codecs to enable h.264 support (*)"
-        echo "6- Enable Firefox's hardware acceleration support (*)"
-        echo "7- Configure systems's dnf for faster downloads (*)"
-        echo "8- Permanent set the governor mode to performance (*)"
-        echo "9- Set yaru icon theme (*)"
-        echo "10- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
-        echo "-------------------------------------------------------------------"
-        echo "------------------ Fedora (unstable features) ---------------------"
-        echo "11- Install cloudflare warp (VPN like) (*)"
-        echo -e "  . WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
+        echo "   • Install distro packages"
+        echo "   • Set up Zsh with plugins (syntax highlighting, autosuggestions, etc.)"
+        echo "   • Install Caskaydia Nerd Font"
+        echo "   • Install and configure Neovim with kickstart"
+        echo "   • Set up Git (install, configure, generate SSH key)"
+        echo "2- Install Flatpak packages"
+        echo "3- Full system setup (includes options 1 and 2)"
+        echo "--------------------------------------------------------------------"
+        echo "--------------------------- Fedora Options -------------------------"
+        echo "4- Enable system's and Firefox hardware acceleration support"
+        echo "   • Install additional non-free media codecs (h.264, etc.)"
+        echo "   • Enable system-wide and Firefox's hardware acceleration support"
+        echo "5- Disable GNOME power-profile-daemon color change (AMD-based)"
+        echo "6- Set Yaru icon theme"
+        echo "7- Configure DNF for faster downloads (Proceed if you know what you are doing!)"
+        echo "8- Set governor mode to performance permanently (Proceed if you know what you are doing!)"
+        echo "---------------------- Experimental Features -----------------------"
+        echo "9- Install Cloudflare WARP (VPN-like service)"
+        echo "   WARNING: May cause issues with GNOME camera and PipeWire"
         echo "q- Quit"
-        echo "-------------------------------------------------------------------"
-        echo "(*) - if not exists/set/configured"
+        echo "--------------------------------------------------------------------"
+        echo "Note: All options will only be applied if not already set/configured."
 
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9 or q): " selection
         case "$selection" in
             1)
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
@@ -927,6 +907,7 @@ main(){
                 install_system_packages
                 customize_terminal
                 setup_neovim
+                setup_git
                 ;;
             2)
                 if ! ask_user_confirmation "You selected to install the flatpak packages. Would you like to proceed?"; then
@@ -935,12 +916,6 @@ main(){
                 install_flatpak_packages
                 ;;  
             3)
-                if ! ask_user_confirmation "You selected setup git. Would you like to proceed?"; then
-                    continue
-                fi
-                setup_git
-                ;;
-            4)
                 if ! ask_user_confirmation "You selected to perform a full system setup. Would you like to proceed?"; then
                     continue
                 fi
@@ -950,21 +925,26 @@ main(){
                 install_flatpak_packages
                 setup_git
                 ;;
-            5)
-                if ! ask_user_confirmation "You selected to install additional media codecs and enable HW acceleration support. Would you like to proceed?"; then
+            4)
+                if ! ask_user_confirmation "You selected to enable system's and Firefox hardware acceleration support. Would you like to proceed?"; then
                     continue
                 fi
-                install_additional_media_codecs_fedora
+                enable_system_and_firefox_hw_acceleration_fedora
+                ;;            
+            5)
+                if ! ask_user_confirmation "You selected to disable GNOME power-profile-daemon color change. Would you like to proceed?"; then
+                    continue
+                fi
+                disable_ppd_color_change_fedora
                 ;;
             6)
-                if ! ask_user_confirmation "You selected to enable Firefox's hardware acceleration support. Would you like to proceed?"; then
-                    continue
+                if ! ask_user_confirmation "You selected to set yaru icons theme. Would you like to proceed?"; then
+                        continue
                 fi
-                enable_firefox_hw_acceleration_fedora
+                set_yaru_icons_fedora
                 ;;
-            
             7)
-                if ! ask_user_confirmation "You selected to configure the system's dnf for faster downloads. Would you like to proceed?"; then
+                if ! ask_user_confirmation "You selected to configure the DNF for faster downloads. Would you like to proceed?"; then
                     continue
                 fi
                 set_faster_downloads_fedora
@@ -977,19 +957,6 @@ main(){
                 set_governor_to_performance_fedora
                 ;;
             9)
-                if ! ask_user_confirmation "You selected to set yaru icons as default. Would you like to proceed?"; then
-                        continue
-                fi
-                set_yaru_icons_fedora
-                ;;
-            
-            10)
-                if ! ask_user_confirmation "You selected to disable gnome power profile color changing. Would you like to proceed?"; then
-                    continue
-                fi
-                disable_ppd_color_change_fedora
-                ;;
-            11)
                 if ! ask_user_confirmation "You selected to install cloudflare warp. Would you like to proceed?"; then
                     continue
                 fi
