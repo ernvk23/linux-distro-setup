@@ -284,7 +284,7 @@ install_system_packages() {
     local packages=()
 
     echo
-    echo "Installing distro packages..."
+    echo "Installing system-wide packages..."
     
     case "$distro" in
     "fedora")
@@ -334,6 +334,7 @@ customize_terminal(){
         log_messages+="${BOLD_MAGENTA}-While configuring zsh, it was found that the file ~/.zhsrc had an existing configuration. Skipped its modification.\n${NC}(If you would like to overwrite the existing config, delete it and re-run this script with the same selected option)\n"
     else
         populate_zshrc_file
+        log_messages+="- The file ~/.zhsrc has been filled with a default configuration\n"
     fi
 
     echo
@@ -343,12 +344,14 @@ customize_terminal(){
         log_messages+="${BOLD_MAGENTA}-While configuring zplug, it was found that the directory ~/.zplug already existed. Skipped its creation.\n${NC}(If you would like to overwrite the existing folder, delete it and re-run this script with the same selected option)\n"
     else
 	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
+        log_messages+="- Zplug has been added installed to your system\n"
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
         log_messages+="${BOLD_MAGENTA}-While configuring zplug, it was found that zplug was already sourced in ~/.zshrc. Skipped ~/.zshrc modification.\n${NC}(If you don't notice any plugins working on the terminal, manually verify what's missing in the ~/.zshrc file)\n"
     else
         add_zplug_to_zshrc_file
+        log_messages+="- Zplug configuration has been added to the file ~/.zhsrc\n"
     fi
 
 
@@ -370,7 +373,7 @@ customize_terminal(){
         rm ~/$font_name.zip
         # Update the font cache
         sudo fc-cache -f -v > /dev/null
-        log_messages+="${BOLD_MAGENTA}-Caskaydia Nerd Font was successfully added to system's fonts.\n In order to use it, set it up on your terminal's Preferences, and in 'Custom font' pick 'CaskaydiaMono Nerd Font Mono'.\n${NC}"
+        log_messages+="${BOLD_MAGENTA}- Caskaydia Nerd Font has been added to system's fonts.\n${NC}(In order to use it, set it up on your terminal's Preferences, and in 'Custom Font' pick 'CaskaydiaMono Nerd Font Mono')\n"
     fi
 
     echo
@@ -383,6 +386,7 @@ customize_terminal(){
         # Do not prompt the user again for a password
         sudo chsh -s "$(which zsh)" "$USER"
         suggest_restart=true
+        log_messages+="- The default shell has been changed to ZSH for the current user\n"
     fi
 }
 
@@ -417,6 +421,7 @@ setup_neovim(){
             make CMAKE_BUILD_TYPE=Release
             cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
             cd ~/ && rm -rf neovim
+            log_messages+="- Neovim has been installed (via manual build). If you would like to remove it use: 'sudo apt purge neovim'\n"
             ;;
         esac
     fi
@@ -429,6 +434,7 @@ setup_neovim(){
     else
         # Kickstart nvim
         git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+        log_messages+="- Kickstart has been added to your neovim configuration folder\n"
     fi
 
 }
@@ -446,7 +452,7 @@ setup_git(){
     git_email="$(git config --get user.email)"
 
     if [[ -n "$git_name" || -n "$git_email" ]]; then
-        log_messages+="-While seting up git it was found it had existing values. Skipped.\n A manual check will be required."
+        log_messages+="- While seting up git it was found it had existing values. Skipped.\nA manual check will be required.\n"
         return
     fi
 
@@ -460,9 +466,9 @@ setup_git(){
         eval "$(ssh-agent -s)"
         ssh-add ~/.ssh/id_ed25519
 
-        log_messages+="${BOLD_MAGENTA}-To allow your PC connecting to Github via SSH, you should:\n Copy the following ssh key and add it to your github account; go to and follow from step 2:\nhttps://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account\n$(cat ~/.ssh/id_ed25519.pub)\n${NC}"
+        log_messages+="${BOLD_MAGENTA}- Git has been configured and a SSH key generated\n${NC}(To allow your PC connecting to Github via SSH, go to and follow:\n https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account \n)"
     else
-        log_messages+="-While seting up git the user cancelled the ssh key generation. Skipped.\n A manual check will be required."
+        log_messages+="- While seting up git the user cancelled the ssh key generation. Skipped.\n A manual check will be required."
     fi
 }
 
@@ -988,7 +994,7 @@ main(){
         echo -e "${log_messages}"
         echo "-------------------------------------------------------------------"
 
-        echo -e "You are advised to READ the above summary before continuing, pay attention to the BOLD_MAGENTA ones.\nYou can also find them by scrolling up if you would like to keep performing actions."
+        echo -e "You are advised to READ the above summary before continuing, pay attention to the ones in magenta.\nYou can also find them by scrolling up if you would like to keep performing actions."
         read -p "Press Enter to continue..."
     done
 }
