@@ -59,64 +59,10 @@ FLATPAK_PACKAGES=(
 
 # Determine the distribution
 distro=$(. /etc/os-release && echo "$ID")
+# Select packages and package manager accordingly to distributions
 package_manager=""
 
-# Select packages and package manager accordingly to distributions
 suggest_restart=false
-
-
-prepare_running_conditions(){
-    supported_distros=("fedora" "debian" "ubuntu")
-    found_distro=false
-    for supported_distro in "${supported_distros[@]}"; do
-        if [[ "$distro" == "$supported_distro" ]]; then
-            found_distro=true
-            break
-        fi
-    done
-
-    if ! "$found_distro"; then
-        echo "The current Linux distribution is not supported."
-        echo "This script is only intended for running on ${supported_distros[@]}."
-        echo "Exiting..."
-        exit 1
-    fi
-
-    if [[ -z "$WSL_DISTRO_NAME" && "$XDG_CURRENT_DESKTOP" != *GNOME* ]];  then
-        echo "The current Desktop Environment is not supported."
-        echo "This script is only intended for running on GNOME."
-        echo "Exiting..."
-        exit 1
-    fi
-
-    # Check for system's pending restart
-    case "$distro" in
-    "fedora")
-        ! dnf needs-restarting -r &> /dev/null
-        ;;
-    "debian" | "ubuntu")
-        [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
-        ;;
-    esac
-    if [[ "$?" -eq 0 ]]; then
-        echo "Your system has pending updates, please restart it and re-run the script."
-        echo "Exiting..."
-        exit 1
-    fi
-
-    # Select package manager and update its cache
-    echo "Updating system's package manager cache..."
-    case "$distro" in
-    "fedora")
-        sudo dnf makecache -y
-        package_manager="dnf"
-        ;;
-    "debian" | "ubuntu")
-        sudo apt update -y
-        package_manager="apt"
-        ;;
-    esac
-}
 
 
 # Check if a package is installed
@@ -163,7 +109,7 @@ is_flatpak_package_available() {
 
 
 # Function to populate the .zshrc file
-populate_zshrc_file() {
+add_config_to_zshrc() {
     local zshrc_path="$HOME/.zshrc"
     local zshrc_content=$(cat <<- 'EOF'
 
@@ -191,7 +137,7 @@ EOF
 }
 
 
-add_zplug_to_zshrc_file() {
+add_zplug_to_zshrc() {
     local zshrc_path="$HOME/.zshrc"
     local zplug_content=$(cat <<- 'EOF'
 source ~/.zplug/init.zsh
@@ -305,38 +251,20 @@ install_system_packages() {
 }
 
 
-customize_terminal(){
-    #############################
-    # Customizes the terminal.
-    # This funciton installs and sets zsh as default shell, populates the .zshrc file in order to get 
-    # completions, syntax highlighting, history substring search, downloads and uses zplug as the plugin 
-    # manager and adds Caskaydia Nerd Font to the system fonts.
-    #
-    # Globals:
-    #   None
-    #
-    # Arguments:
-    #	None
-    #
-    # Returns:
-    #   None
-    #############################
-    echo
-    echo "Setting up terminal..."
-    
-    local dependencies=("zsh" "curl" "unzip" "git")
-    install_packages "${dependencies[@]}"
-
+configure_zsh(){
     echo
     echo "Configuring zsh..."
 
     if [ -s ~/.zshrc ]; then
         log_messages+="${BOLD_MAGENTA}-While configuring zsh, it was found that the file ~/.zhsrc had an existing configuration. Skipped its modification.\n${NC}(If you would like to overwrite the existing config, delete it and re-run this script with the same selected option)\n"
-    else
-        populate_zshrc_file
-        log_messages+="- The file ~/.zhsrc has been filled with a default configuration\n"
+        return 0
     fi
+    add_config_to_zshrc
+    log_messages+="- The file ~/.zhsrc has been filled with a default configuration\n"
+}
+    
 
+configure_zplug(){
     echo
     echo "Configuring zplug..."
 
@@ -350,11 +278,12 @@ customize_terminal(){
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
         log_messages+="${BOLD_MAGENTA}-While configuring zplug, it was found that zplug was already sourced in ~/.zshrc. Skipped ~/.zshrc modification.\n${NC}(If you don't notice any plugins working on the terminal, manually verify what's missing in the ~/.zshrc file)\n"
     else
-        add_zplug_to_zshrc_file
-        log_messages+="- Zplug configuration has been added to the file ~/.zhsrc\n"
+        add_zplug_to_zshrc
+        log_messages+="- Zplug configuration has been added to the file ~/.zhsrc.\n"
     fi
+}
 
-
+add_nerd_fonts(){
     echo
     echo "Adding Caskaydia Nerd Font to the system fonts..."
     
@@ -363,86 +292,122 @@ customize_terminal(){
     font_path="$fonts_dir/$font_name"
 
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
-        log_messages+="-There is no need to add Caskaydia Nerd Font on WSL. Skipped.\n"
-    elif [ -d $font_path ]; then
-        log_messages+="-While adding Caskaydia Nerd Font to the system fonts it was found that the directory $font_path already existed. Skipped its creation.\n"
-    else
-        # Download the latest Caskaydia Nerd Font
-        curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
-        sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
-        rm ~/$font_name.zip
-        # Update the font cache
-        sudo fc-cache -f -v > /dev/null
-        log_messages+="${BOLD_MAGENTA}- Caskaydia Nerd Font has been added to system's fonts.\n${NC}(In order to use it, set it up on your terminal's Preferences, and in 'Custom Font' pick 'CaskaydiaMono Nerd Font Mono')\n"
+        log_messages+="- There is no need to add Caskaydia Nerd Font on WSL. Skipped.\n"
+        return 0
     fi
 
+    if [ -d $font_path ]; then
+        log_messages+="- While adding Caskaydia Nerd Font to the system fonts it was found that the directory $font_path already existed. Skipped its creation.\n"
+        return 0
+    fi
+
+    # Download the latest Caskaydia Nerd Font
+    curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
+    sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
+    rm ~/$font_name.zip
+    # Update the font cache
+    sudo fc-cache -f -v > /dev/null
+    log_messages+="${BOLD_MAGENTA}- Caskaydia Nerd Font has been added to system's fonts.\n${NC}(In order to use it, set it up on your terminal's Preferences, and in 'Custom Font' pick 'CaskaydiaMono Nerd Font Mono')\n"
+}
+
+
+set_shell_to_zsh(){
     echo
     echo "Setting the shell to zsh..."
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
         log_messages+="-While setting the shell to zsh it was found that it was already set as the default shell. Skipped.\n"
-    else
-        #chsh -s $(which zsh)
-        # Do not prompt the user again for a password
-        sudo chsh -s "$(which zsh)" "$USER"
-        suggest_restart=true
-        log_messages+="- The default shell has been changed to ZSH for the current user\n"
+        return 0
     fi
+
+    # Do not prompt the user again for a password
+    sudo chsh -s "$(which zsh)" "$USER"
+    suggest_restart=true
+    log_messages+="- The default shell has been changed to ZSH for the current user.\n"
+}
+
+
+setup_terminal(){
+    echo
+    echo "Setting up terminal..."
+    
+    local dependencies=("zsh" "curl" "unzip" "git")
+    install_packages "${dependencies[@]}"
+
+    configure_zsh
+    configure_zplug
+    add_nerd_fonts
+    set_shell_to_zsh
+}
+
+
+install_neovim(){
+    echo
+    echo "Installing neovim..."
+
+    if is_package_installed "neovim"; then
+        log_messages+="- Neovim was already installed. Skipped its installation.\n"
+        return 0
+    fi
+
+    local dependencies=()
+    case "$distro" in
+    "fedora" | "ubuntu")
+        dependencies=("git" "neovim")
+        install_packages "${dependencies[@]}"
+        log_messages+="- Neovim has been installed.\n"
+        ;;
+    "debian")
+        dependencies=(
+            "git"
+            "file"
+            "ninja-build"
+            "gettext"
+            "cmake"
+            "unzip"
+            "curl"
+            "build-essential"
+        )
+        install_packages "${dependencies[@]}"
+        cd ~/ && git clone https://github.com/neovim/neovim
+        cd neovim && git checkout stable
+        make CMAKE_BUILD_TYPE=Release
+        cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
+        cd ~/ && rm -rf neovim
+        log_messages+="- Neovim has been installed (via manual build). If you would like to remove it use: 'sudo apt purge neovim'\n"
+        ;;
+    esac
+}
+
+add_kickstart_neovim(){
+    echo
+    echo "Adding kickstart neovim..."
+    
+    local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+
+    if [ -d "$kickstart_path" ]; then
+        log_messages+="${BOLD_MAGENTA}-While setting up neovim it was found that the directory ${kickstart_path} already existed. Skipped kickstart neovim setup.${NC}\n(If you would like to overwrite the existing nvim folder with kickstart, delete it and re-run this script with the same selected option)\n"
+        return 0
+    fi
+
+    # Kickstart nvim
+    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+    log_messages+="- Kickstart has been added to your neovim configuration folder\n"
 }
 
 
 setup_neovim(){
     echo
-    echo "Neovim setup..."
+    echo "Setting up neovim..."
 
-    if is_package_installed "neovim"; then
-        log_messages+="-Neovim was already installed. Skipped its installation.\n"
-    else
-        local dependencies=()
-        case "$distro" in
-        "fedora" | "ubuntu")
-            dependencies=("git" "neovim")
-            install_packages "${dependencies[@]}"
-            ;;
-        "debian")
-            dependencies=(
-                "git"
-                "file"
-                "ninja-build"
-                "gettext"
-                "cmake"
-                "unzip"
-                "curl"
-                "build-essential"
-            )
-            install_packages "${dependencies[@]}"
-            cd ~/ && git clone https://github.com/neovim/neovim
-            cd neovim && git checkout stable
-            make CMAKE_BUILD_TYPE=Release
-            cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
-            cd ~/ && rm -rf neovim
-            log_messages+="- Neovim has been installed (via manual build). If you would like to remove it use: 'sudo apt purge neovim'\n"
-            ;;
-        esac
-    fi
-
-
-    local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
-
-    if [ -d "$kickstart_path" ]; then
-        log_messages+="${BOLD_MAGENTA}-While setting up neovim it was found that the directory ${kickstart_path} already existed. Skipped kickstart neovim setup.${NC}\n(If you would like to overwrite the existing nvim folder with kickstart, delete it and re-run this script with the same selected option)\n"
-    else
-        # Kickstart nvim
-        git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
-        log_messages+="- Kickstart has been added to your neovim configuration folder\n"
-    fi
-
+    install_neovim
+    add_kickstart_neovim
 }
 
 
 setup_git(){
     echo
-    echo "Git setup..."
+    echo "Setting up git..."
 
     local dependencies=("git")
     install_packages "${dependencies[@]}"
@@ -453,7 +418,7 @@ setup_git(){
 
     if [[ -n "$git_name" || -n "$git_email" ]]; then
         log_messages+="- While seting up git it was found it had existing values. Skipped.\nA manual check will be required.\n"
-        return
+        return 0
     fi
 
     read -p "Enter the username for your github account: " username
@@ -465,22 +430,21 @@ setup_git(){
     if ssh-keygen -t ed25519 -C "$email" -f ~/.ssh/id_ed25519 -N ""; then
         eval "$(ssh-agent -s)"
         ssh-add ~/.ssh/id_ed25519
-
         log_messages+="${BOLD_MAGENTA}- Git has been configured and a SSH key generated\n${NC}(To allow your PC connecting to Github via SSH, go to and follow:\n https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account \n)"
     else
-        log_messages+="- While seting up git the user cancelled the ssh key generation. Skipped.\n A manual check will be required."
+        log_messages+="- While setting up git the user cancelled the ssh key generation. Skipped.\n A manual check will be required.\n"
     fi
 }
 
 
 install_flatpak_packages() {
+    echo
+    echo "Installing flatpak packages..."
+
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
         log_messages+="-Skipped flatpak installation on WSL.\n"
         return 0
     fi
-
-    echo
-    echo "Installing flatpak packages..."
 
     # Only run on Debian-based distributions
     if ! is_package_installed "flatpak"; then
@@ -492,7 +456,7 @@ install_flatpak_packages() {
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         
         # Inform the user about the required restart
-        log_messages+="${BOLD_MAGENTA}-Flatpak was successfully installed, a restart will be required before installing flatpak packages\n${NC}"
+        log_messages+="${BOLD_MAGENTA}- Flatpak has been installed, a restart will be required before installing its packages\n${NC}"
         suggest_restart=true
         return 0
     fi
@@ -551,16 +515,9 @@ set_faster_downloads_fedora(){
 }
 
 
-
-
-enable_system_and_firefox_hw_acceleration_fedora(){
+install_non_free_media_codecs(){
     echo
-    echo "Enabling system's and Firefox hardware acceleration support..."
-	
-    if [[ "$distro" != "fedora" ]]; then
-        log_messages+="-Current distribution: $distro was not Fedora. Skipped installing additonal media codecs.\n"
-        return 0
-    fi
+    echo "Installing non free media codecs..."
 
 	# https://rpmfusion.org/Configuration
 	# Installing Free and Nonfree Repositories
@@ -598,10 +555,14 @@ enable_system_and_firefox_hw_acceleration_fedora(){
 	sudo dnf install -y libva-utils
 
     log_messages+="-Additional non-free media codecs have been installed\n"
+}
     
+enable_firefox_hw_acceleration(){
+    echo
+    echo "Enabling Firefox hardware acceleration..."
+
     # To enable hardware acceleration on Firefox (optional but highly advised) you should:\n Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true\n Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons&Themes->Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all (if you enabled HW on settings there is no need here)\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
     # (You can use 'vainfo' to check for AV1 hardware support.\n Typically, YouTube enforces this format without considering your system's compatibility,\n which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false.\n However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true.)
-
     firefox_dir="$HOME/.mozilla/firefox"
 
     # Function to check for Firefox profiles
@@ -665,7 +626,20 @@ enable_system_and_firefox_hw_acceleration_fedora(){
     fi
 
     log_messages+="-Firefox's HW acceleration have been enabled\n(You can check the file $profile_file to see the modified flags"
+}
 
+
+enable_hw_acceleration_support_fedora(){
+    echo
+    echo "Enabling system's and Firefox hardware acceleration support..."
+	
+    if [[ "$distro" != "fedora" ]]; then
+        log_messages+="-Current distribution: $distro was not Fedora. Skipped enabling system's and Firefox hardware acceleration support.\n"
+        return 0
+    fi
+
+    install_non_free_media_codecs
+    enable_firefox_hw_acceleration
 }
 
 
@@ -866,6 +840,63 @@ EOF
 }
 
 
+check_running_conditions(){
+    supported_distros=("fedora" "debian" "ubuntu")
+    found_distro=false
+    for supported_distro in "${supported_distros[@]}"; do
+        if [[ "$distro" == "$supported_distro" ]]; then
+            found_distro=true
+            break
+        fi
+    done
+
+    if ! "$found_distro"; then
+        echo "The current Linux distribution is not supported."
+        echo "This script is only intended for running on ${supported_distros[@]}."
+        echo "Exiting..."
+        exit 1
+    fi
+
+    if [[ -z "$WSL_DISTRO_NAME" && "$XDG_CURRENT_DESKTOP" != *GNOME* ]];  then
+        echo "The current Desktop Environment is not supported."
+        echo "This script is only intended for running on GNOME."
+        echo "Exiting..."
+        exit 1
+    fi
+}
+
+
+check_and_update_package_manager_cache(){
+    # Check for system's pending restart
+    case "$distro" in
+    "fedora")
+        ! dnf needs-restarting -r &> /dev/null
+        ;;
+    "debian" | "ubuntu")
+        [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
+        ;;
+    esac
+    if [[ "$?" -eq 0 ]]; then
+        echo "Your system has pending updates, please restart it and re-run the script."
+        echo "Exiting..."
+        exit 1
+    fi
+
+    # Select package manager and update its cache
+    echo "Updating system's package manager cache..."
+    case "$distro" in
+    "fedora")
+        sudo dnf makecache -y
+        package_manager="dnf"
+        ;;
+    "debian" | "ubuntu")
+        sudo apt update -y
+        package_manager="apt"
+        ;;
+    esac
+}
+
+
 ask_user_confirmation() {
     local prompt="$1"
     local response
@@ -881,7 +912,8 @@ ask_user_confirmation() {
 
 main(){
     clear
-    prepare_running_conditions
+    check_running_conditions
+    check_and_update_package_manager_cache
     clear
 
     while true; do
@@ -895,8 +927,7 @@ main(){
         echo "   • Set up Git (install, configure, generate SSH key)"
         echo "2- Install Flatpak packages"
         echo "3- Full system setup (includes options 1 and 2)"
-        echo "--------------------------------------------------------------------"
-        echo "--------------------------- Fedora Options -------------------------"
+        echo "-------------------------- Fedora Options --------------------------"
         echo "4- Enable system's and Firefox hardware acceleration support"
         echo "   • Install additional non-free media codecs (h.264, etc.)"
         echo "   • Enable system-wide and Firefox's hardware acceleration support"
@@ -904,7 +935,7 @@ main(){
         echo "6- Set Yaru icon theme"
         echo "7- Configure DNF for faster downloads (Proceed if you know what you are doing!)"
         echo "8- Set governor mode to performance permanently (Proceed if you know what you are doing!)"
-        echo "---------------------- Experimental Features -----------------------"
+        echo "----------------------- Fedora Unstable Options --------------------"
         echo "9- Install Cloudflare WARP (VPN-like service)"
         echo "   WARNING: May cause issues with GNOME camera and PipeWire"
         echo "q- Quit"
@@ -918,7 +949,7 @@ main(){
                     continue
                 fi
                 install_system_packages
-                customize_terminal
+                setup_terminal
                 setup_neovim
                 setup_git
                 ;;
@@ -933,7 +964,7 @@ main(){
                     continue
                 fi
                 install_system_packages
-                customize_terminal
+                setup_terminal
                 setup_neovim
                 install_flatpak_packages
                 setup_git
@@ -942,7 +973,7 @@ main(){
                 if ! ask_user_confirmation "You selected to enable system's and Firefox hardware acceleration support. Would you like to proceed?"; then
                     continue
                 fi
-                enable_system_and_firefox_hw_acceleration_fedora
+                enable_hw_acceleration_support_fedora
                 ;;            
             5)
                 if ! ask_user_confirmation "You selected to disable GNOME power-profile-daemon color change. Would you like to proceed?"; then
