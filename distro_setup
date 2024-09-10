@@ -20,9 +20,6 @@ FEDORA_PACKAGES=(
 
 UBUNTU_PACKAGES=(
     "python3-pip"
-    #"git"
-    #"curl"
-    #"unzip"
     "gnome-tweaks"
     "gnome-shell-pomodoro"
     "caffeine"
@@ -31,9 +28,6 @@ UBUNTU_PACKAGES=(
 DEBIAN_PACKAGES=(
     "python3"
     "python3-pip"
-    #"git"
-    #"curl"
-    #"unzip"
 )
 
 ADDITIONAL_DEBIAN_NON_WSL_PACKAGES=(
@@ -170,7 +164,7 @@ bindkey "$terminfo[kcud1]" history-substring-search-down
 
 # zplug - install/load new plugins when zsh is started or reloaded
 if ! zplug check; then
-    echo -e "There are plugins in the ~/.zshrc file that are not currently installed.\nWould you like to install them? [y/N]: "
+    echo -e "Install missing plugins from ~/.zshrc? [y/n]: "
 	if read -q; then
 	    echo; zplug install
 	fi
@@ -209,10 +203,10 @@ install_packages(){
     for package in "${packages[@]}"; do
         if ! is_package_available "$package"; then
             if $is_dependency; then
-                echo -e "The dependency $package is not available. Manual check required. Exiting..."
+                echo -e "Package $package not found. Please check manually. Exiting..."
                 exit 1
             else
-                log_warning "The package $package was not available. Skipped installation."
+                log_warning "Skipped $package: package not found."
             fi
         elif ! is_package_installed "$package"; then
             to_install+=("$package")
@@ -225,35 +219,36 @@ install_packages(){
             for package in "${to_install[@]}"; do
                 sudo $package_manager install -y "$package" #> /dev/null
                 if [ $? -ne 0 ]; then
-                    echo -e "The package $package failed to install.\nManual check required. Exiting..."
+                    echo -e "Failed to install $package. Please check manually. Exiting..."
                     exit 1
                 fi
             done
             # Check the status code of the installation command
-            log_action "The following dependencies have been installed:\n${to_install[*]}"
+            log_action "Installed packages: ${to_install[*]}"
         else
             echo "The following packages will be installed: ${to_install[*]}"
-            echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed otherwise press any other key to abort.${NC}"
-            read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
+            echo -e "${BOLD_MAGENTA}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
+            read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
+
             if [[ "$choice" =~ [yY] ]]; then
                 echo
                 sudo $package_manager install -y "${to_install[@]}" #> /dev/null
                 # Check the status code of the installation command
-                log_action "The following packages have been installed: ${to_install[*]}"
+                log_action "Installed packages: ${to_install[*]}"
             else
-                log_warning "The following packages ${to_install[*]} were not installed because the user skipped them"
+                log_warning "Skipped installing: ${to_install[*]}"
             fi
         fi
     fi
 }
 
 
-install_system_packages() {
+install_additional_packages() {
     # List of packages to install
     local packages=()
 
     echo
-    echo "Installing system-wide packages..."
+    echo "Installing additional packages..."
     
     case "$distro" in
     "fedora")
@@ -279,30 +274,30 @@ configure_zsh(){
     echo "Configuring zsh..."
 
     if [ -s ~/.zshrc ]; then
-        log_warning "${BOLD_MAGENTA}While configuring zsh, it was found that the file ~/.zhsrc had an existing configuration. Skipped its modification.\n${NC}(If you would like to overwrite the existing config, delete it and re-run this script with the same selected option)"
+        log_warning "~/.zshrc configuration exists. Modification skipped. Delete it to overwrite and re-run."
         return 0
     fi
     add_config_to_zshrc
-    log_action "The file ~/.zhsrc has been filled with a default configuration"
+    log_action "Default configuration added to ~/.zhsrc"
 }
     
 
-configure_zplug(){
+add_zplug(){
     echo
-    echo "Configuring zplug..."
+    echo "Adding zplug..."
 
     if [ -d ~/.zplug ]; then
-        log_warning "${BOLD_MAGENTA}While configuring zplug, it was found that the directory ~/.zplug already existed. Skipped its creation.\n${NC}(If you would like to overwrite the existing folder, delete it and re-run this script with the same selected option)"
+        log_warning "~/.zplug directory exists. Action skipped. Delete it to overwrite and re-run."
     else
 	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
-        log_action "Zplug has been added installed to your system"
+        log_action "Zplug has been downloaded."
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
-        log_warning "${BOLD_MAGENTA}While configuring zplug, it was found that zplug was already sourced in ~/.zshrc. Skipped ~/.zshrc modification.\n${NC}(If you don't notice any plugins working on the terminal, manually verify what's missing in the ~/.zshrc file)"
+        log_warning "zplug is already sourced in ~/.zshrc. Action skipped. Verify missing plugins in ~/.zshrc if needed."
     else
         add_zplug_to_zshrc
-        log_action "Zplug configuration has been added to the file ~/.zhsrc."
+        log_action "zplug configuration added to ~/.zhsrc."
     fi
 }
 
@@ -315,12 +310,12 @@ add_nerd_fonts(){
     font_path="$fonts_dir/$font_name"
 
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
-        log_warning "There is no need to add Caskaydia Nerd Font on WSL. Skipped"
+        log_warning "Caskaydia Nerd Font is not needed on WSL. Action skipped."
         return 0
     fi
 
     if [ -d $font_path ]; then
-        log_warning "While adding Caskaydia Nerd Font to the system fonts it was found that the directory $font_path already existed. Skipped its creation."
+        log_warning "Directory $font_path already exists. Skipped adding Caskaydia Nerd Font."
         return 0
     fi
 
@@ -330,7 +325,7 @@ add_nerd_fonts(){
     rm ~/$font_name.zip
     # Update the font cache
     sudo fc-cache -f -v > /dev/null
-    log_action "${BOLD_MAGENTA}- Caskaydia Nerd Font has been added to system's fonts.\n${NC}(In order to use it, set it up on your terminal's Preferences, and in 'Custom Font' pick 'CaskaydiaMono Nerd Font Mono')"
+    log_action "${BOLD_MAGENTA}Caskaydia Nerd Font has been added to system's fonts.${NC} Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'."
 }
 
 
@@ -339,14 +334,14 @@ set_shell_to_zsh(){
     echo "Setting the shell to zsh..."
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
-        log_warning "While setting the shell to zsh it was found that it was already set as the default shell. Skipped."
+        log_warning "zsh is already the default shell. Skipped setting it."
         return 0
     fi
 
     # Do not prompt the user again for a password
     sudo chsh -s "$(which zsh)" "$USER"
     suggest_restart=true
-    log_action "The default shell has been changed to ZSH for the current user."
+    log_action "Default shell has been changed to ZSH for the current user."
 }
 
 
@@ -358,7 +353,7 @@ setup_terminal(){
     install_packages true "${dependencies[@]}"
 
     configure_zsh
-    configure_zplug
+    add_zplug
     add_nerd_fonts
     set_shell_to_zsh
 }
@@ -369,7 +364,7 @@ install_neovim(){
     echo "Installing neovim..."
 
     if is_package_installed "neovim"; then
-        log_warning "Neovim was already installed. Skipped its installation."
+        log_warning "Neovim is already installed. Skipped installation."
         return 0
     fi
 
@@ -396,7 +391,7 @@ install_neovim(){
         make CMAKE_BUILD_TYPE=Release
         cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
         cd ~/ && rm -rf neovim
-        log_action "Neovim has been installed (via manual build). If you would like to remove it use: 'sudo apt purge neovim'"
+        log_action "Neovim has been installed (via manual build). To remove it, use: 'sudo apt purge neovim'."
         ;;
     esac
 }
@@ -408,13 +403,13 @@ add_kickstart_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        log_warning "${BOLD_MAGENTA}While setting up neovim it was found that the directory ${kickstart_path} already existed. Skipped kickstart neovim setup.${NC}\n(If you would like to overwrite the existing nvim folder with kickstart, delete it and re-run this script with the same selected option)."
+        log_warning "${BOLD_MAGENTA}Directory ${kickstart_path} already exists. Skipped kickstart neovim setup.${NC} To overwrite, delete the existing nvim folder and re-run the script with the same option."
         return 0
     fi
 
     # Kickstart nvim
     git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
-    log_action "Kickstart has been added to your neovim configuration folder."
+    log_action "Kickstart has been added to your Neovim configuration folder."
 }
 
 
@@ -439,7 +434,7 @@ setup_git(){
     git_email="$(git config --get user.email)"
 
     if [[ -n "$git_name" || -n "$git_email" ]]; then
-        log_warning "While seting up git it was found it had existing values. Skipped.\nA manual check will be required."
+        log_warning "Skipped setting up Git due to existing values. Manual check required."
         return 0
     fi
 
@@ -452,9 +447,10 @@ setup_git(){
     if ssh-keygen -t ed25519 -C "$email" -f ~/.ssh/id_ed25519 -N ""; then
         eval "$(ssh-agent -s)"
         ssh-add ~/.ssh/id_ed25519
-        log_action "${BOLD_MAGENTA}- Git has been configured and a SSH key generated\n${NC}(To allow your PC connecting to Github via SSH, go to and follow:\n https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account )"
+        log_action "${BOLD_MAGENTA}Git has been configured and an SSH key generated.${NC} To connect to GitHub via SSH, follow the instructions at: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account."
+
     else
-        log_warning "While setting up git the user cancelled the ssh key generation. Skipped.\n A manual check will be required."
+        log_warning "User cancelled SSH key generation for Git setup. Manual check required."
     fi
 }
 
@@ -464,7 +460,7 @@ install_flatpak_packages() {
     echo "Installing flatpak packages..."
 
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
-        log_warning "Skipped flatpak installation on WSL."
+        log_warning "Skipped installing Flatpak on WSL."
         return 0
     fi
 
@@ -478,7 +474,7 @@ install_flatpak_packages() {
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         
         # Inform the user about the required restart
-        log_action "${BOLD_MAGENTA}- Flatpak has been installed, a restart will be required before installing its packages.${NC}"
+        log_action "${BOLD_MAGENTA}Flatpak has been installed. A restart will be required before installing packages.${NC}"
         suggest_restart=true
         return 0
     fi
@@ -486,7 +482,7 @@ install_flatpak_packages() {
     local to_install=()
     for package in "${FLATPAK_PACKAGES[@]}"; do
 	    if ! is_flatpak_package_available "$package"; then
-            log_warning "The flatpak package $package is not available. Skipped its installation."
+            log_warning "Skipped $package: package not found."
         elif ! is_flatpak_package_installed "$package"; then
 		    to_install+=("$package")
 	    fi
@@ -494,16 +490,15 @@ install_flatpak_packages() {
 
     if [[ "${#to_install[@]}" -gt 0 ]]; then
         echo "The following Flatpak packages will be installed: ${to_install[*]}"
-        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed otherwise press any other key to abort.${NC}"
-
+        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
         # Read user input with a timeout
         read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
         if [[ "$choice" =~ [yY] ]]; then
             echo
             flatpak install -y --noninteractive flathub "${to_install[@]}"
-            log_action "The following flatpak packages have been installed: ${to_install[*]}"
+            log_action "Installed flatpak packages: ${to_install[*]}"
         else
-            log_warning "The following flatpak packages ${to_install[*]} were not installed because the user skipped them"
+            log_warning "Skipped installing: ${to_install[*]}"
         fi
     fi
 }
@@ -514,20 +509,20 @@ set_faster_downloads_fedora(){
     echo "Configuring DNF for faster downloads..."
     
     if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution: $distro was not Fedora. Skipped configuring DNF for faster downloads."
+        log_warning "Current distribution $distro is not Fedora. Skipped configuring DNF for faster downloads."
         return 0
     fi
 
     # Check if the values are already present
     if grep -q "^max_parallel_downloads=10$" /etc/dnf/dnf.conf || grep -q "^fastestmirror=True$" /etc/dnf/dnf.conf; then
-        log_warning "Either max_parallel_downloads or fastestmirror was already present in /etc/dnf/dnf.conf. Skipped configuring DNF for faster downloads."
+        log_warning "max_parallel_downloads or fastestmirror already present in /etc/dnf/dnf.conf. Skipped configuring DNF for faster downloads."
         return 0
     fi
 
     echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
     suggest_restart=true
 
-    log_action "The DNF has been configured for faster downloads."
+    log_action "DNF has been configured for faster downloads."
 }
 
 
@@ -563,14 +558,14 @@ install_non_free_media_codecs(){
 	elif grep -q GenuineIntel /proc/cpuinfo; then
         sudo dnf install -y intel-media-driver
 	else
-        log_warning "Current machine is not AMD or Intel based. Skipped installing additonal media codecs."
+        log_warning "Current machine is not based on AMD or Intel. Skipped installing additional media codecs."
         return 0
 	fi
 
 	# Make available vainfo
 	sudo dnf install -y libva-utils
 
-    log_action "Additional non-free media codecs have been installed"
+    log_action "Non-free media codecs have been installed."
 }
 
 enable_firefox_hw_acceleration(){
@@ -604,7 +599,7 @@ enable_firefox_hw_acceleration(){
         
         # Check again for profiles
         if ! check_firefox_profiles; then
-            echo "Failed to create a Firefox profile. Please run Firefox manually before running this script."
+            echo "Failed to create a Firefox profile. Please run Firefox manually before executing this script."
             exit 1
         fi
     fi
@@ -617,7 +612,7 @@ enable_firefox_hw_acceleration(){
     if [ -f "$profile_file" ]; then
         profile_backup="$profile_file.backup_$(date +%Y%m%d_%H%M%S)"
         cp "$profile_file" "$profile_backup"
-        log_action "The file $profile_file already existed, the backup $profile_backup was created with it's original values."
+        log_action "File $profile_file already existed. Backup $profile_backup created with original values."
     fi
     
     set_pref() {
@@ -641,16 +636,16 @@ enable_firefox_hw_acceleration(){
         set_pref "media.av1.enabled" false
     fi
 
-    log_action "Firefox's HW acceleration have been enabled\n(You can check the file $profile_file to see the modified flags."
+    log_action "Firefox's hardware acceleration has been enabled. You can check the file $profile_file to see the modified flags."
 }
 
 
 enable_hw_acceleration_support_fedora(){
     echo
-    echo "Enabling system's and Firefox hardware acceleration support..."
+    echo "Enabling system and Firefox hardware acceleration support..."
 	
     if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution: $distro was not Fedora. Skipped enabling system's and Firefox hardware acceleration support."
+        log_warning "Current distribution $distro is not Fedora. Skipped enabling system and Firefox hardware acceleration support."
         return 0
     fi
 
@@ -664,7 +659,7 @@ set_governor_to_performance_fedora(){
     echo "Setting the governor mode to performance..."
     
     if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution: $distro is not Fedora. Skipped setting the governor mode to performance."
+        log_warning "Current distribution $distro is not Fedora. Skipped setting the CPU governor mode to performance."
         return 0
     fi
 
@@ -673,7 +668,7 @@ set_governor_to_performance_fedora(){
     governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor) 
 
     if [ "$governor" = "performance" ]; then
-        log_warning "The CPU scaling governor was already set to 'performance'\nThere was no need to create a startup service for it. Skipped."
+        log_warning "The CPU scaling governor is already set to 'performance'. No need to create a startup service for it. Skipped."
         return 0
     fi
     
@@ -706,7 +701,7 @@ EOF
 )
 
     if [ -f "$script_path" ]; then
-        log_warning "The $script_name already existed in $script_dir.\nThere was no need to create it. Skipped."
+        log_warning "The $script_name already exists in $script_dir. No need to create it. Skipped."
         return 0
     fi
 
@@ -715,7 +710,7 @@ EOF
     sudo chmod +x "$script_path"
 
     if [ -f "$service_path" ]; then
-        log_warning "${BOLD_MAGENTA}-The $service_name already existed in $service_dir.\nThere was no need to create it. Skipped.\n A manual check will be required.\nYou are advised to run:\nsudo systemctl status $service_name${NC}"
+        log_warning "${BOLD_MAGENTA}Skipped creating $service_name because it already exists in $service_dir. Manual check required. You are advised to run:\nsudo systemctl status $service_name${NC}"
         return 0
     fi
 
@@ -728,7 +723,7 @@ EOF
     sudo systemctl start "$service_name" > /dev/null
     suggest_restart=true
 
-    log_action "The governor mode have been set to performance."
+    log_action "The CPU governor mode has been set to performance."
 }
 
 
@@ -737,7 +732,7 @@ set_yaru_icons_fedora(){
     echo "Setting yaru icons... "
 
     if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution: $distro is not Fedora. Skipped setting yaru icons."
+        log_warning "Current distribution $distro is not Fedora. Skipped setting Yaru icons."
         return 0
     fi
 
@@ -745,7 +740,7 @@ set_yaru_icons_fedora(){
 
     local icon_theme='Yaru-prussiangreen-dark'
     if [[ "$current_icon_theme" == *Yaru* ]]; then
-        log_warning "The $current_icon_theme icons were already enabled. Skipped."
+        log_warning "The $current_icon_theme icons are already enabled. Skipped."
         return 0
     fi
 
@@ -756,7 +751,7 @@ set_yaru_icons_fedora(){
     #gsettings set org.gnome.desktop.wm.preferences theme 'Yaru'
     gsettings set org.gnome.desktop.interface icon-theme "$icon_theme"
 
-    log_action "Yaru icons have been set"
+    log_action "Yaru icons have been set."
 }
 
 
@@ -783,7 +778,7 @@ disable_ppd_color_change_fedora(){
     fi
 
     if ! grep -q AuthenticAMD /proc/cpuinfo; then
-        log_warning "Current machine is not AMD-based. Skipped disabling gnome power-profile-daemon (PPD) color change."
+        log_warning "Current distribution $distro is not Fedora. Skipped disabling GNOME power-profile-daemon (PPD) color change."
         return 0
     fi
 
@@ -791,7 +786,7 @@ disable_ppd_color_change_fedora(){
     GRUB_FILE="/etc/default/grub"
 
     if grep -q "amdgpu.abmlevel" "$GRUB_FILE"; then
-        log_warning "${BOLD_MAGENTA}-amdgpu.abmlevel already existed in $GRUB_FILE.\n Verify manually its value and change it to 0 (to disable PPD from modifying colors). Skipped.${NC}"
+        log_warning "${BOLD_MAGENTA}amdgpu.abmlevel already exists in $GRUB_FILE. Verify manually its value and change it to 0 (to disable PPD from modifying colors). Skipped.${NC}"
         return 0
     fi
 
@@ -799,7 +794,7 @@ disable_ppd_color_change_fedora(){
     if [ $? -eq 0 ]; then
         sudo grub2-mkconfig -o /boot/grub2/grub.cfg
         suggest_restart=true
-        log_action "Gnome power-profile-daemon (PPD) color change has been disabled"
+        log_action "Gnome power-profile-daemon (PPD) color change has been disabled."
     fi
 }
 
@@ -809,7 +804,7 @@ install_cloudflare_warp_fedora(){
     echo "Installing cloudfare warp... "
 
     if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution: $distro is not Fedora. Skipped installing cloudfare warp."
+        log_warning "Current distribution $distro is not Fedora. Skipped installing Cloudflare Warp."
         return 0
     fi
 
@@ -830,7 +825,7 @@ ResolveUnicastSingleLabel=yes
 EOF
 )
     if [ -s "$resolved_path" ]; then
-        log_warning "${BOLD_MAGENTA}While installing cloudflare warp, it was found that the file $resolved_path had an existing configuration. Skipped its modification.\n A manual check will be required.${NC}"
+        log_warning "${BOLD_MAGENTA}While installing cloudflare warp, it was found that the file $resolved_path had an existing configuration. Skipped its modification. Manual check required.${NC}"
         return 0
     fi
 
@@ -853,7 +848,7 @@ EOF
     # Register a new session with cloudflare warp and accept terms and conditions
     echo y | sudo warp-cli registration new
     
-    log_action "Cloudflare warp was succesfully installed, use 'warp-cli --help' for more.\n (If you used the script's option 1 or 3 for generating the zsh config, after you register warp using 'warp-cli register'\nyou could also use the following shortcuts:\n  warpc for connecting\n  warpd for disconnecing\n  warps for status)"
+    log_action "Cloudflare Warp was successfully installed. Use 'warp-cli --help' for more information. If you used the script's option 1 or 3 for generating the Zsh config, you can also use the following shortcuts:\n• warpc for connecting\n• warpd for disconnecting\n• warps for status."
 }
 
 
@@ -894,7 +889,7 @@ check_and_update_package_manager_cache(){
         ;;
     esac
     if [[ "$?" -eq 0 ]]; then
-        echo "Your system has pending updates, please restart it and re-run the script."
+        echo "Your system has pending updates. Please restart it and re-run the script."
         echo "Exiting..."
         exit 1
     fi
@@ -966,7 +961,7 @@ main(){
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
                     continue
                 fi
-                install_system_packages
+                install_additional_packages
                 setup_terminal
                 setup_neovim
                 setup_git
@@ -981,7 +976,7 @@ main(){
                 if ! ask_user_confirmation "You selected to perform a full system setup. Would you like to proceed?"; then
                     continue
                 fi
-                install_system_packages
+                install_additional_packages
                 setup_terminal
                 setup_neovim
                 install_flatpak_packages
@@ -1035,7 +1030,7 @@ main(){
         esac
         
         if "$suggest_restart"; then
-            log_action "${BOLD_MAGENTA}-Some changes need a system restart to take effect. Please RESTART your system to finish${NC}"
+            log_action "${BOLD_MAGENTA}Some changes need a system restart to take effect. Please RESTART your system to finish${NC}"
         fi
         
         if [ -n "$warning_log_messages" ] || [ -n "$action_log_messages" ]; then
@@ -1049,7 +1044,7 @@ main(){
                 echo "---------------------- Summary of actions --------------------------"
                 echo -e "$action_log_messages"
             fi
-            echo -e "You are advised to READ the above summary before continuing, pay attention to the ones in magenta.\nYou can also find them by scrolling up if you would like to keep performing actions."
+            echo -e "You are advised to READ the above summary before continuing. Pay attention to the ones in magenta.\nYou can also find them by scrolling up if you would like to keep performing actions."
             echo "--------------------------------------------------------------------"
         fi
         read -p "Press Enter to continue..."
