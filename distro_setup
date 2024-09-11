@@ -1041,15 +1041,14 @@ main(){
                 ;;
         esac
         
-        if "$suggest_restart"; then
-            log_info "Some changes need a system restart to take effect. Please RESTART your system to finish."
-        fi
-
         # Check if the log file exists and is not empty
         if [[ -f "$LOG_FILE" && -s "$LOG_FILE" ]]; then
             echo -e "\n-------------------------- Log Summary ----------------------------"
             tail -n +$((INITIAL_LINES + 1)) "$LOG_FILE"
             echo "--------------------------------------------------------------------"
+        fi
+        if "$suggest_restart"; then
+            echo -e "Some changes need a system restart to take effect. Please RESTART your system to finish."
         fi
         read -p "Press Enter to continue..."
     done
