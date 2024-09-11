@@ -277,7 +277,7 @@ configure_zsh(){
         return 0
     fi
     add_config_to_zshrc
-    log_action "Default configuration added to ~/.zhsrc"
+    log_action "Added default configuration to ~/.zhsrc"
 }
     
 
@@ -289,14 +289,14 @@ add_zplug(){
         log_warning "The ~/.zplug directory exists. Action skipped. Delete it to overwrite and re-run."
     else
 	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
-        log_action "Zplug has been downloaded."
+        log_action "Downloaded Zplug."
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
         log_warning "zplug is already sourced in ~/.zshrc. Action skipped. Verify missing plugins in ~/.zshrc if needed."
     else
         add_zplug_to_zshrc
-        log_action "zplug configuration added to ~/.zhsrc."
+        log_action "Added zplug configuration to ~/.zhsrc."
     fi
 }
 
@@ -324,7 +324,7 @@ add_nerd_fonts(){
     rm ~/$font_name.zip
     # Update the font cache
     sudo fc-cache -f -v > /dev/null
-    log_action "${BOLD_MAGENTA}Caskaydia Nerd Font has been added to system's fonts.${NC} Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'."
+    log_action "Added Caskaydia Nerd Font to system's fonts. Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'"
 }
 
 
@@ -340,7 +340,7 @@ set_shell_to_zsh(){
     # Do not prompt the user again for a password
     sudo chsh -s "$(which zsh)" "$USER"
     suggest_restart=true
-    log_action "Default shell has been changed to ZSH for the current user."
+    log_action "Changed default shell to ZSH for the current user."
 }
 
 
@@ -390,7 +390,7 @@ install_neovim(){
         make CMAKE_BUILD_TYPE=Release
         cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
         cd ~/ && rm -rf neovim
-        log_action "Neovim has been installed (via manual build). To remove it, use: 'sudo apt purge neovim'."
+        log_action "Installed neovim (via manual build). To remove it, use: 'sudo apt purge neovim'."
         ;;
     esac
 }
@@ -408,7 +408,7 @@ add_kickstart_neovim(){
 
     # Kickstart nvim
     git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
-    log_action "Kickstart has been added to your Neovim configuration folder."
+    log_action "Added kickstart to Neovim configuration folder."
 }
 
 
@@ -446,7 +446,7 @@ setup_git(){
     if ssh-keygen -t ed25519 -C "$email" -f ~/.ssh/id_ed25519 -N ""; then
         eval "$(ssh-agent -s)"
         ssh-add ~/.ssh/id_ed25519
-        log_action "${BOLD_MAGENTA}Git has been configured and an SSH key generated.${NC} To connect to GitHub via SSH, follow the instructions at: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account."
+        log_action "Configured Git and generated SSH key. To connect to GitHub via SSH, follow the instructions at: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
 
     else
         log_warning "User cancelled SSH key generation for Git setup. Manual check required."
@@ -473,7 +473,7 @@ install_flatpak_packages() {
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         
         # Inform the user about the required restart
-        log_action "${BOLD_MAGENTA}Flatpak has been installed. A restart will be required before installing packages.${NC}"
+        log_action "Installed Flatpak. A restart will be required before installing packages.${NC}"
         suggest_restart=true
         return 0
     fi
@@ -481,7 +481,7 @@ install_flatpak_packages() {
     local to_install=()
     for package in "${FLATPAK_PACKAGES[@]}"; do
 	    if ! is_flatpak_package_available "$package"; then
-            log_warning "Skipped $package: package not found."
+            log_warning "Skipped $package: flatpak package not found."
         elif ! is_flatpak_package_installed "$package"; then
 		    to_install+=("$package")
 	    fi
@@ -521,7 +521,7 @@ set_faster_downloads_fedora(){
     echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
     suggest_restart=true
 
-    log_action "DNF has been configured for faster downloads."
+    log_action "Configured DNF for faster downloads."
 }
 
 
@@ -564,7 +564,7 @@ install_non_free_media_codecs(){
 	# Make available vainfo
 	sudo dnf install -y libva-utils
 
-    log_action "Non-free media codecs have been installed."
+    log_action "Installed non-free media codecs."
 }
 
 enable_firefox_hw_acceleration(){
@@ -635,7 +635,7 @@ enable_firefox_hw_acceleration(){
         set_pref "media.av1.enabled" false
     fi
 
-    log_action "Firefox's hardware acceleration has been enabled. You can check the file $profile_file to see the modified flags."
+    log_action "Enabled Firefox's hardware acceleration. You can check the file $profile_file to see the modified flags."
 }
 
 
@@ -722,7 +722,7 @@ EOF
     sudo systemctl start "$service_name" > /dev/null
     suggest_restart=true
 
-    log_action "The CPU governor mode has been set to performance."
+    log_action "Set governor mode to performance."
 }
 
 
@@ -750,7 +750,7 @@ set_yaru_icons_fedora(){
     #gsettings set org.gnome.desktop.wm.preferences theme 'Yaru'
     gsettings set org.gnome.desktop.interface icon-theme "$icon_theme"
 
-    log_action "Yaru icons have been set."
+    log_action "Set yaru icons theme."
 }
 
 
@@ -793,7 +793,7 @@ disable_ppd_color_change_fedora(){
     if [ $? -eq 0 ]; then
         sudo grub2-mkconfig -o /boot/grub2/grub.cfg
         suggest_restart=true
-        log_action "Gnome power-profile-daemon (PPD) color change has been disabled."
+        log_action "Disabled gnome power-profile-daemon (PPD) color change."
     fi
 }
 
