@@ -2,10 +2,24 @@
 #
 # Automate the setup process of a linux DISTRO clean install
 
-BOLD_MAGENTA='\e[1;35m'
-NC='\e[0m'
-ERROR="\e[31m[ERROR]\e[0m"
+## Color Constants
+MARKER='\e[1;35m'
+NC='\e[0m'  # No Color
+ERROR_COLOR="\e[31m[ERROR]\e[0m"
+SUCCESS_COLOR="\e[32m[SUCCESS]\e[0m"
+WARNING_COLOR="\e[93m[WARNING]\e[0m"
+INFO_COLOR="\e[35m[INFO]\e[0m"
+
+## Timeout given to the user to spik optional and flatpack packages installations
 TIMEOUT=10
+
+## Global Variables
+LOG_FILE="script_logs.txt"
+PACKAGE_MANAGER=""
+SUGGEST_RESTART=false
+
+## Determine the Distribution
+DISTRO=$(. /etc/os-release && echo "$ID")
 
 FEDORA_PACKAGES=(
     "python3-pip"
@@ -31,7 +45,7 @@ DEBIAN_PACKAGES=(
     "python3-pip"
 )
 
-ADDITIONAL_DEBIAN_NON_WSL_PACKAGES=(
+DEBIAN_NON_WSL=(
     "gnome-tweaks"
     "gnome-shell-extension-appindicator"
     "gnome-shell-pomodoro"
@@ -52,14 +66,6 @@ FLATPAK_PACKAGES=(
     "com.rafaelmardojai.Blanket"
 )
 
-# Determine the distribution
-DISTRO=$(. /etc/os-release && echo "$ID")
-
-# Global variables
-package_manager=""
-suggest_restart=false
-
-LOG_FILE="script_logs.txt"
 
 # Logging functions with timestamps
 log_info() {
@@ -194,7 +200,7 @@ install_packages(){
     # for confirmation, and installs the required packages using the system's package manager.
     #
     # Globals:
-    #   package_manager: str (The package manager to be used for installation)
+    #   PACKAGE_MANAGER: str (The package manager to be used for installation)
     #
     # Arguments:
     #   is_dependency: boolean (Flag to indicate if the packages are dependencies)
@@ -229,7 +235,7 @@ install_packages(){
         if $is_dependency; then
             # The for loop is needed to know which dependency fails to install if any
             for package in "${to_install[@]}"; do
-                sudo $package_manager install -y "$package" #> /dev/null
+                sudo $PACKAGE_MANAGER install -y "$package" #> /dev/null
                 if [ $? -ne 0 ]; then
                     log_error "Failed to install $package. Please check manually."
                     echo -e "$ERROR Failed to install $package. Please check manually. Exiting..."
@@ -240,12 +246,12 @@ install_packages(){
             log_success "Installed packages: ${to_install[*]}"
         else
             echo "The following packages will be installed: ${to_install[*]}"
-            echo -e "${BOLD_MAGENTA}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
+            echo -e "${MARKER}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
             read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
 
             if [[ "$choice" =~ [yY] ]]; then
                 echo
-                sudo $package_manager install -y "${to_install[@]}" #> /dev/null
+                sudo $PACKAGE_MANAGER install -y "${to_install[@]}" #> /dev/null
                 # Check the status code of the installation command
                 log_success "Installed packages: ${to_install[*]}"
             else
@@ -256,13 +262,13 @@ install_packages(){
 }
 
 
-install_additional_packages() {
+install_optional_packages() {
+    echo
+    echo "Installing optional packages..."
+    
     # List of packages to install
     local packages=()
 
-    echo
-    echo "Installing additional packages..."
-    
     case "$DISTRO" in
     "fedora")
         packages=("${FEDORA_PACKAGES[@]}")
@@ -273,7 +279,7 @@ install_additional_packages() {
     "debian")
         packages=("${DEBIAN_PACKAGES[@]}")
         if [[ -z "$WSL_DISTRO_NAME" ]]; then
-            packages+=("${ADDITIONAL_DEBIAN_NON_WSL_PACKAGES[@]}")
+            packages+=("${DEBIAN_NON_WSL[@]}")
         fi
         ;;
     esac
@@ -282,20 +288,23 @@ install_additional_packages() {
 }
 
 
-configure_zsh(){
+setup_terminal(){
+    echo
+    echo "Setting up terminal..."
+    
+    local dependencies=("zsh" "curl" "unzip" "git")
+    install_packages true "${dependencies[@]}"
+
     echo
     echo "Configuring zsh..."
 
     if [ -s ~/.zshrc ]; then
         log_warning "The ~/.zshrc configuration exists. Action skipped. Delete it to overwrite and re-run."
-        return 0
+    else
+        add_config_to_zshrc
+        log_success "Added default configuration to ~/.zhsrc"
     fi
-    add_config_to_zshrc
-    log_success "Added default configuration to ~/.zhsrc"
-}
     
-
-add_zplug(){
     echo
     echo "Adding zplug..."
 
@@ -312,9 +321,7 @@ add_zplug(){
         add_zplug_to_zshrc
         log_success "Added zplug configuration to ~/.zhsrc."
     fi
-}
 
-add_nerd_fonts(){
     echo
     echo "Adding Caskaydia Nerd Font to the system fonts..."
     
@@ -324,95 +331,67 @@ add_nerd_fonts(){
 
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
         log_warning "Caskaydia Nerd Font is not needed on WSL. Action skipped."
-        return 0
-    fi
-
-    if [ -d $font_path ]; then
+    elif [ -d $font_path ]; then
         log_warning "The directory $font_path exists. Action skipped. Delete it to overwrite and re-run."
-        return 0
+    else
+        # Download the latest Caskaydia Nerd Font
+        curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
+        sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
+        rm ~/$font_name.zip
+        # Update the font cache
+        sudo fc-cache -f -v > /dev/null
+        log_success "Added Caskaydia Nerd Font to system's fonts. Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'"
     fi
 
-    # Download the latest Caskaydia Nerd Font
-    curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
-    sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
-    rm ~/$font_name.zip
-    # Update the font cache
-    sudo fc-cache -f -v > /dev/null
-    log_success "Added Caskaydia Nerd Font to system's fonts. Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'"
-}
-
-
-set_shell_to_zsh(){
     echo
     echo "Setting the shell to zsh..."
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
         log_warning "zsh is already the default shell. Action skipped."
-        return 0
+    else
+        # Do not prompt the user again for a password
+        sudo chsh -s "$(which zsh)" "$USER"
+        SUGGEST_RESTART=true
+        log_success "Changed default shell to ZSH for the current user."
     fi
-
-    # Do not prompt the user again for a password
-    sudo chsh -s "$(which zsh)" "$USER"
-    suggest_restart=true
-    log_success "Changed default shell to ZSH for the current user."
 }
 
 
-setup_terminal(){
+setup_neovim(){
     echo
-    echo "Setting up terminal..."
-    
-    local dependencies=("zsh" "curl" "unzip" "git")
-    install_packages true "${dependencies[@]}"
-
-    configure_zsh
-    add_zplug
-    add_nerd_fonts
-    set_shell_to_zsh
-}
-
-
-install_neovim(){
-    echo
-    echo "Installing neovim..."
+    echo "Setting up neovim..."
 
     if is_package_installed "neovim"; then
         log_warning "Neovim is already installed. Action skipped."
-        return 0
+    else
+        local dependencies=()
+        case "$DISTRO" in
+        "fedora" | "ubuntu")
+            dependencies=("git" "neovim")
+            install_packages true "${dependencies[@]}"
+            ;;
+        "debian")
+            dependencies=(
+                "git"
+                "file"
+                "ninja-build"
+                "gettext"
+                "cmake"
+                "unzip"
+                "curl"
+                "build-essential"
+            )
+            install_packages true "${dependencies[@]}"
+            cd ~/ && git clone https://github.com/neovim/neovim
+            cd neovim && git checkout stable
+            make CMAKE_BUILD_TYPE=Release
+            cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
+            cd ~/ && rm -rf neovim
+            log_success "Installed neovim (via manual build). To remove it, use: 'sudo apt purge neovim'."
+            ;;
+        esac
     fi
 
-    local dependencies=()
-    case "$DISTRO" in
-    "fedora" | "ubuntu")
-        dependencies=("git" "neovim")
-        install_packages true "${dependencies[@]}"
-        ;;
-    "debian")
-        dependencies=(
-            "git"
-            "file"
-            "ninja-build"
-            "gettext"
-            "cmake"
-            "unzip"
-            "curl"
-            "build-essential"
-        )
-        install_packages true "${dependencies[@]}"
-        cd ~/ && git clone https://github.com/neovim/neovim
-        cd neovim && git checkout stable
-        make CMAKE_BUILD_TYPE=Release
-        cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
-        cd ~/ && rm -rf neovim
-        log_success "Installed neovim (via manual build). To remove it, use: 'sudo apt purge neovim'."
-        ;;
-    esac
-}
-
-add_kickstart_neovim(){
-    echo
-    echo "Adding kickstart neovim..."
-    
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
@@ -421,17 +400,8 @@ add_kickstart_neovim(){
     fi
 
     # Kickstart nvim
-    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+    git clone https://giSthub.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
     log_success "Added kickstart to Neovim configuration folder."
-}
-
-
-setup_neovim(){
-    echo
-    echo "Setting up neovim..."
-
-    install_neovim
-    add_kickstart_neovim
 }
 
 
@@ -487,7 +457,7 @@ install_flatpak_packages() {
         
         # Inform the user about the required restart
         log_success "Installed Flatpak. A restart will be required before installing packages.${NC}"
-        suggest_restart=true
+        SUGGEST_RESTART=true
         return 0
     fi
 
@@ -502,7 +472,7 @@ install_flatpak_packages() {
 
     if [[ "${#to_install[@]}" -gt 0 ]]; then
         echo "The following Flatpak packages will be installed: ${to_install[*]}"
-        echo -e "${BOLD_MAGENTA} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
+        echo -e "${MARKER} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
         # Read user input with a timeout
         read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
         if [[ "$choice" =~ [yY] ]]; then
@@ -542,7 +512,7 @@ set_faster_downloads_fedora(){
     fi
 
     echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
-    suggest_restart=true
+    SUGGEST_RESTART=true
 
     log_success "Configured DNF for faster downloads."
 }
@@ -743,7 +713,7 @@ EOF
     sudo systemctl daemon-reload > /dev/null
     sudo systemctl enable "$service_name" > /dev/null
     sudo systemctl start "$service_name" > /dev/null
-    suggest_restart=true
+    SUGGEST_RESTART=true
 
     log_success "Set governor mode to performance."
 }
@@ -815,7 +785,7 @@ disable_ppd_color_change_fedora(){
     sudo sed -i '/GRUB_CMDLINE_LINUX/s/"\(.*\)"/"\1 amdgpu.abmlevel=0"/' "$GRUB_FILE"
     if [ $? -eq 0 ]; then
         sudo grub2-mkconfig -o /boot/grub2/grub.cfg
-        suggest_restart=true
+        SUGGEST_RESTART=true
         log_success "Disabled gnome power-profile-daemon (PPD) color change."
     fi
 }
@@ -874,17 +844,10 @@ EOF
 }
 
 
-check_running_conditions(){
+ensure_running_conditions(){
     supported_distros=("fedora" "debian" "ubuntu")
     found_distro=false
-    for supported_distro in "${supported_distros[@]}"; do
-        if [[ "$DISTRO" == "$supported_distro" ]]; then
-            found_distro=true
-            break
-        fi
-    done
-
-    if ! "$found_distro"; then
+    if [[ ! " ${supported_distros[@]} " =~ " ${DISTRO} " ]]; then
         log_error "The current Linux distribution is not supported. This script is only intended for running on ${supported_distros[@]}."
         echo -e "$ERROR The current Linux distribution is not supported. This script is only intended for running on ${supported_distros[@]}. Exiting..."
         exit 1
@@ -895,11 +858,7 @@ check_running_conditions(){
         echo -e "$ERROR The current Desktop Environment is not supported. This script is only intended for running on GNOME. Exiting..."
         exit 1
     fi
-}
 
-
-check_package_manager(){
-    # Check for system's pending restart
     case "$DISTRO" in
     "fedora")
         ! dnf needs-restarting -r &> /dev/null
@@ -916,14 +875,15 @@ check_package_manager(){
 
     # Select package manager and update its cache
     echo "Updating system's package manager cache..."
+
     case "$DISTRO" in
     "fedora")
+        PACKAGE_MANAGER="dnf"
         sudo dnf makecache -y
-        package_manager="dnf"
         ;;
     "debian" | "ubuntu")
+        PACKAGE_MANAGER="apt"
         sudo apt update -y
-        package_manager="apt"
         ;;
     esac
 }
@@ -941,7 +901,6 @@ ask_user_confirmation() {
     esac
 }
 
-
 # Function to count initial lines
 count_log_file_lines() {
     if [[ -f "$LOG_FILE" ]]; then
@@ -953,8 +912,7 @@ count_log_file_lines() {
 
 main(){
     clear
-    check_running_conditions
-    check_package_manager
+    ensure_running_conditions
     clear
 
     while true; do
@@ -962,7 +920,7 @@ main(){
         INITIAL_LINES="$(count_log_file_lines)"
         echo "--------------------------- Setup Options ---------------------------"
         echo "1- Minimal system setup"
-        echo "   • Install additional packages"
+        echo "   • Install optional packages"
         echo "   • Set up Zsh with plugins (syntax highlighting, autosuggestions, etc.)"
         echo "   • Install Caskaydia Nerd Font"
         echo "   • Install and configure Neovim with kickstart"
@@ -971,7 +929,7 @@ main(){
         echo "3- Full system setup (includes options 1 and 2)"
         echo "-------------------------- Fedora Options --------------------------"
         echo "4- Enable system's and Firefox hardware acceleration support"
-        echo "   • Install additional non-free media codecs (h.264, etc.)"
+        echo "   • Install non-free media codecs (h.264, etc.)"
         echo "   • Enable system-wide and Firefox's hardware acceleration support"
         echo "5- Disable GNOME power-profile-daemon color change (AMD-based)"
         echo "6- Set Yaru icon theme"
@@ -990,7 +948,7 @@ main(){
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
                     continue
                 fi
-                install_additional_packages
+                install_optional_packages
                 setup_terminal
                 setup_neovim
                 setup_git
@@ -1005,7 +963,7 @@ main(){
                 if ! ask_user_confirmation "You selected to perform a full system setup. Would you like to proceed?"; then
                     continue
                 fi
-                install_additional_packages
+                install_optional_packages
                 setup_terminal
                 setup_neovim
                 install_flatpak_packages
@@ -1064,7 +1022,7 @@ main(){
             tail -n +$((INITIAL_LINES + 1)) "$LOG_FILE"
             echo "--------------------------------------------------------------------"
         fi
-        if "$suggest_restart"; then
+        if "$SUGGEST_RESTART"; then
             echo -e "Some changes need a system restart to take effect. Please RESTART your system to finish."
         fi
         read -p "Press Enter to continue..."
