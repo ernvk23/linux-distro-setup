@@ -1,9 +1,10 @@
 #!/bin/bash
 #
-# Automate the setup process of a linux distro clean install
+# Automate the setup process of a linux DISTRO clean install
 
 BOLD_MAGENTA='\e[1;35m'
 NC='\e[0m'
+ERROR="\e[31m[ERROR]\e[0m"
 TIMEOUT=10
 
 FEDORA_PACKAGES=(
@@ -52,26 +53,36 @@ FLATPAK_PACKAGES=(
 )
 
 # Determine the distribution
-distro=$(. /etc/os-release && echo "$ID")
+DISTRO=$(. /etc/os-release && echo "$ID")
 
 # Global variables
 package_manager=""
 suggest_restart=false
-warning_log_messages=""
-action_log_messages=""
 
-log_warning() {
-    warning_log_messages+="• $1\n"
+LOG_FILE="script_logs.txt"
+
+# Logging functions with timestamps
+log_info() {
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') \e[35m[INFO]\e[0m $1" >> "$LOG_FILE"
 }
 
-log_action() {
-    action_log_messages+="• $1\n"
+log_warning() {
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') \e[93m[WARNING]\e[0m $1" >> "$LOG_FILE"
+}
+
+log_error() {
+    #echo -e "\e[31m[ERROR]\e[0m $1"
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') \e[31m[ERROR]\e[0m $1" >> "$LOG_FILE"
+}
+
+log_success() {
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') \e[32m[SUCCESS]\e[0m $1" >> "$LOG_FILE"
 }
 
 # Check if a package is installed
 is_package_installed() {
     local package=$1
-    case "$distro" in
+    case "$DISTRO" in
         "fedora")
             rpm -q "$package" &> /dev/null
             ;;
@@ -85,7 +96,7 @@ is_package_installed() {
 # Check if a package is available to install
 is_package_available() {
     local package=$1
-    case "$distro" in
+    case "$DISTRO" in
         "fedora")
             # avoid the package manager to halt with repo related prompts
             dnf info "$package" &> /dev/null
@@ -198,11 +209,13 @@ install_packages(){
     local packages=("$@")
     local to_install=()
 
+
     # Check for availability, do not add to the list if it is already installed
     for package in "${packages[@]}"; do
         if ! is_package_available "$package"; then
             if $is_dependency; then
-                echo -e "Package $package not found. Please check manually. Exiting..."
+                log_error "Package $package not found. Please check manually."
+                echo -e "$ERROR Package $package not found. Please check manually. Exiting..."
                 exit 1
             else
                 log_warning "Skipped $package: package not found."
@@ -218,12 +231,13 @@ install_packages(){
             for package in "${to_install[@]}"; do
                 sudo $package_manager install -y "$package" #> /dev/null
                 if [ $? -ne 0 ]; then
-                    echo -e "Failed to install $package. Please check manually. Exiting..."
+                    log_error "Failed to install $package. Please check manually."
+                    echo -e "$ERROR Failed to install $package. Please check manually. Exiting..."
                     exit 1
                 fi
             done
             # Check the status code of the installation command
-            log_action "Installed packages: ${to_install[*]}"
+            log_success "Installed packages: ${to_install[*]}"
         else
             echo "The following packages will be installed: ${to_install[*]}"
             echo -e "${BOLD_MAGENTA}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
@@ -233,7 +247,7 @@ install_packages(){
                 echo
                 sudo $package_manager install -y "${to_install[@]}" #> /dev/null
                 # Check the status code of the installation command
-                log_action "Installed packages: ${to_install[*]}"
+                log_success "Installed packages: ${to_install[*]}"
             else
                 log_warning "Skipped installing: ${to_install[*]}"
             fi
@@ -249,7 +263,7 @@ install_additional_packages() {
     echo
     echo "Installing additional packages..."
     
-    case "$distro" in
+    case "$DISTRO" in
     "fedora")
         packages=("${FEDORA_PACKAGES[@]}")
         ;;
@@ -277,7 +291,7 @@ configure_zsh(){
         return 0
     fi
     add_config_to_zshrc
-    log_action "Added default configuration to ~/.zhsrc"
+    log_success "Added default configuration to ~/.zhsrc"
 }
     
 
@@ -289,14 +303,14 @@ add_zplug(){
         log_warning "The ~/.zplug directory exists. Action skipped. Delete it to overwrite and re-run."
     else
 	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
-        log_action "Downloaded Zplug."
+        log_success "Downloaded Zplug."
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
         log_warning "zplug is already sourced in ~/.zshrc. Action skipped. Verify missing plugins in ~/.zshrc if needed."
     else
         add_zplug_to_zshrc
-        log_action "Added zplug configuration to ~/.zhsrc."
+        log_success "Added zplug configuration to ~/.zhsrc."
     fi
 }
 
@@ -324,7 +338,7 @@ add_nerd_fonts(){
     rm ~/$font_name.zip
     # Update the font cache
     sudo fc-cache -f -v > /dev/null
-    log_action "Added Caskaydia Nerd Font to system's fonts. Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'"
+    log_success "Added Caskaydia Nerd Font to system's fonts. Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'"
 }
 
 
@@ -340,7 +354,7 @@ set_shell_to_zsh(){
     # Do not prompt the user again for a password
     sudo chsh -s "$(which zsh)" "$USER"
     suggest_restart=true
-    log_action "Changed default shell to ZSH for the current user."
+    log_success "Changed default shell to ZSH for the current user."
 }
 
 
@@ -368,7 +382,7 @@ install_neovim(){
     fi
 
     local dependencies=()
-    case "$distro" in
+    case "$DISTRO" in
     "fedora" | "ubuntu")
         dependencies=("git" "neovim")
         install_packages true "${dependencies[@]}"
@@ -390,7 +404,7 @@ install_neovim(){
         make CMAKE_BUILD_TYPE=Release
         cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
         cd ~/ && rm -rf neovim
-        log_action "Installed neovim (via manual build). To remove it, use: 'sudo apt purge neovim'."
+        log_success "Installed neovim (via manual build). To remove it, use: 'sudo apt purge neovim'."
         ;;
     esac
 }
@@ -402,13 +416,13 @@ add_kickstart_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        log_warning "${BOLD_MAGENTA}The directory ${kickstart_path} already exists. Action skipped.${NC} Delete it to overwrite and re-run."
+        log_warning "The directory ${kickstart_path} already exists. Action skipped. Delete it to overwrite and re-run."
         return 0
     fi
 
     # Kickstart nvim
     git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
-    log_action "Added kickstart to Neovim configuration folder."
+    log_success "Added kickstart to Neovim configuration folder."
 }
 
 
@@ -446,8 +460,7 @@ setup_git(){
     if ssh-keygen -t ed25519 -C "$email" -f ~/.ssh/id_ed25519 -N ""; then
         eval "$(ssh-agent -s)"
         ssh-add ~/.ssh/id_ed25519
-        log_action "Configured Git and generated SSH key. To connect to GitHub via SSH, follow the instructions at: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
-
+        log_success "Configured Git and generated SSH key. To connect to GitHub via SSH, follow the instructions at: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
     else
         log_warning "User cancelled SSH key generation for Git setup. Manual check required."
     fi
@@ -473,7 +486,7 @@ install_flatpak_packages() {
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         
         # Inform the user about the required restart
-        log_action "Installed Flatpak. A restart will be required before installing packages.${NC}"
+        log_success "Installed Flatpak. A restart will be required before installing packages.${NC}"
         suggest_restart=true
         return 0
     fi
@@ -495,7 +508,7 @@ install_flatpak_packages() {
         if [[ "$choice" =~ [yY] ]]; then
             echo
             flatpak install -y --noninteractive flathub "${to_install[@]}"
-            log_action "Installed flatpak packages: ${to_install[*]}"
+            log_success "Installed flatpak packages: ${to_install[*]}"
         else
             log_warning "Skipped installing: ${to_install[*]}"
         fi
@@ -507,8 +520,8 @@ set_faster_downloads_fedora(){
     echo
     echo "Configuring DNF for faster downloads..."
     
-    if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution $distro is not Fedora. Skipped configuring DNF for faster downloads."
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution $DISTRO is not Fedora. Skipped configuring DNF for faster downloads."
         return 0
     fi
 
@@ -521,7 +534,7 @@ set_faster_downloads_fedora(){
     echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
     suggest_restart=true
 
-    log_action "Configured DNF for faster downloads."
+    log_success "Configured DNF for faster downloads."
 }
 
 
@@ -564,7 +577,7 @@ install_non_free_media_codecs(){
 	# Make available vainfo
 	sudo dnf install -y libva-utils
 
-    log_action "Installed non-free media codecs."
+    log_success "Installed non-free media codecs."
 }
 
 enable_firefox_hw_acceleration(){
@@ -598,8 +611,8 @@ enable_firefox_hw_acceleration(){
         
         # Check again for profiles
         if ! check_firefox_profiles; then
-            echo "Failed to create a Firefox profile. Please run Firefox manually before executing this script."
-            exit 1
+            log_warning "Failed to create a Firefox profile. Please run Firefox manually before executing this script."
+            return 0
         fi
     fi
      
@@ -611,7 +624,7 @@ enable_firefox_hw_acceleration(){
     if [ -f "$profile_file" ]; then
         profile_backup="$profile_file.backup_$(date +%Y%m%d_%H%M%S)"
         cp "$profile_file" "$profile_backup"
-        log_action "File $profile_file already existed. Backup $profile_backup created with original values."
+        log_info "File $profile_file already existed. Backup $profile_backup created with original values."
     fi
     
     set_pref() {
@@ -635,7 +648,7 @@ enable_firefox_hw_acceleration(){
         set_pref "media.av1.enabled" false
     fi
 
-    log_action "Enabled Firefox's hardware acceleration. You can check the file $profile_file to see the modified flags."
+    log_success "Enabled Firefox's hardware acceleration. You can check the file $profile_file to see the modified flags."
 }
 
 
@@ -643,8 +656,8 @@ enable_hw_acceleration_support_fedora(){
     echo
     echo "Enabling system and Firefox hardware acceleration support..."
 	
-    if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution $distro is not Fedora. Skipped enabling system and Firefox hardware acceleration support."
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution $DISTRO is not Fedora. Skipped enabling system and Firefox hardware acceleration support."
         return 0
     fi
 
@@ -657,8 +670,8 @@ set_governor_to_performance_fedora(){
     echo
     echo "Setting the governor mode to performance..."
     
-    if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution $distro is not Fedora. Skipped setting the CPU governor mode to performance."
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution $DISTRO is not Fedora. Skipped setting the CPU governor mode to performance."
         return 0
     fi
 
@@ -709,7 +722,7 @@ EOF
     sudo chmod +x "$script_path"
 
     if [ -f "$service_path" ]; then
-        log_warning "${BOLD_MAGENTA}Skipped creating $service_name because it already exists in $service_dir. Manual check required. You are advised to run:\nsudo systemctl status $service_name${NC}"
+        log_warning "Skipped creating $service_name because it already exists in $service_dir. Manual check required. You are advised to run:\nsudo systemctl status $service_name"
         return 0
     fi
 
@@ -722,7 +735,7 @@ EOF
     sudo systemctl start "$service_name" > /dev/null
     suggest_restart=true
 
-    log_action "Set governor mode to performance."
+    log_success "Set governor mode to performance."
 }
 
 
@@ -730,8 +743,8 @@ set_yaru_icons_fedora(){
     echo
     echo "Setting yaru icons... "
 
-    if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution $distro is not Fedora. Skipped setting Yaru icons."
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution $DISTRO is not Fedora. Skipped setting Yaru icons."
         return 0
     fi
 
@@ -750,7 +763,7 @@ set_yaru_icons_fedora(){
     #gsettings set org.gnome.desktop.wm.preferences theme 'Yaru'
     gsettings set org.gnome.desktop.interface icon-theme "$icon_theme"
 
-    log_action "Set yaru icons theme."
+    log_success "Set yaru icons theme."
 }
 
 
@@ -771,13 +784,13 @@ disable_ppd_color_change_fedora(){
     echo "Disabling gnome power-profile-daemon (PPD) color change... "
 
 
-    if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution: $distro is not Fedora. Skipped disabling gnome power-profile-daemon (PPD) color change."
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution: $DISTRO is not Fedora. Skipped disabling gnome power-profile-daemon (PPD) color change."
         return 0
     fi
 
     if ! grep -q AuthenticAMD /proc/cpuinfo; then
-        log_warning "Current distribution $distro is not Fedora. Skipped disabling GNOME power-profile-daemon (PPD) color change."
+        log_warning "Current machine is not AMD based. Skipped disabling GNOME power-profile-daemon (PPD) color change."
         return 0
     fi
 
@@ -785,7 +798,7 @@ disable_ppd_color_change_fedora(){
     GRUB_FILE="/etc/default/grub"
 
     if grep -q "amdgpu.abmlevel" "$GRUB_FILE"; then
-        log_warning "${BOLD_MAGENTA}amdgpu.abmlevel already exists in $GRUB_FILE. Verify manually its value and change it to 0 (to disable PPD from modifying colors). Action skipped.${NC}"
+        log_warning "amdgpu.abmlevel already exists in $GRUB_FILE. Verify manually its value and change it to 0 (to disable PPD from modifying colors). Action skipped."
         return 0
     fi
 
@@ -793,7 +806,7 @@ disable_ppd_color_change_fedora(){
     if [ $? -eq 0 ]; then
         sudo grub2-mkconfig -o /boot/grub2/grub.cfg
         suggest_restart=true
-        log_action "Disabled gnome power-profile-daemon (PPD) color change."
+        log_success "Disabled gnome power-profile-daemon (PPD) color change."
     fi
 }
 
@@ -802,8 +815,8 @@ install_cloudflare_warp_fedora(){
     echo
     echo "Installing cloudfare warp... "
 
-    if [[ "$distro" != "fedora" ]]; then
-        log_warning "Current distribution $distro is not Fedora. Skipped installing Cloudflare Warp."
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution $DISTRO is not Fedora. Skipped installing Cloudflare Warp."
         return 0
     fi
 
@@ -824,7 +837,7 @@ ResolveUnicastSingleLabel=yes
 EOF
 )
     if [ -s "$resolved_path" ]; then
-        log_warning "${BOLD_MAGENTA}While installing cloudflare warp, it was found that the file $resolved_path had an existing configuration. Action skipped. Manual check required.${NC}"
+        log_warning "While installing cloudflare warp, it was found that the file $resolved_path had an existing configuration. Action skipped. Manual check required."
         return 0
     fi
 
@@ -847,7 +860,7 @@ EOF
     # Register a new session with cloudflare warp and accept terms and conditions
     echo y | sudo warp-cli registration new
     
-    log_action "Cloudflare Warp has been installed. Use 'warp-cli --help' for more information. If you used the script's option 1 or 3 for generating the Zsh config, you can also use the following shortcuts:\n• warpc for connecting\n• warpd for disconnecting\n• warps for status."
+    log_success "Cloudflare Warp has been installed. Use 'warp-cli --help' for more information. If you used the script's option 1 or 3 for generating the Zsh config, you can also use the following shortcuts:\n• warpc for connecting\n• warpd for disconnecting\n• warps for status."
 }
 
 
@@ -855,23 +868,21 @@ check_running_conditions(){
     supported_distros=("fedora" "debian" "ubuntu")
     found_distro=false
     for supported_distro in "${supported_distros[@]}"; do
-        if [[ "$distro" == "$supported_distro" ]]; then
+        if [[ "$DISTRO" == "$supported_distro" ]]; then
             found_distro=true
             break
         fi
     done
 
     if ! "$found_distro"; then
-        echo "The current Linux distribution is not supported."
-        echo "This script is only intended for running on ${supported_distros[@]}."
-        echo "Exiting..."
+        log_error "The current Linux distribution is not supported. This script is only intended for running on ${supported_distros[@]}."
+        echo -e "$ERROR The current Linux distribution is not supported. This script is only intended for running on ${supported_distros[@]}. Exiting..."
         exit 1
     fi
 
     if [[ -z "$WSL_DISTRO_NAME" && "$XDG_CURRENT_DESKTOP" != *GNOME* ]];  then
-        echo "The current Desktop Environment is not supported."
-        echo "This script is only intended for running on GNOME."
-        echo "Exiting..."
+        log_error "The current Desktop Environment is not supported. This script is only intended for running on GNOME."
+        echo -e "$ERROR The current Desktop Environment is not supported. This script is only intended for running on GNOME. Exiting..."
         exit 1
     fi
 }
@@ -879,7 +890,7 @@ check_running_conditions(){
 
 check_package_manager(){
     # Check for system's pending restart
-    case "$distro" in
+    case "$DISTRO" in
     "fedora")
         ! dnf needs-restarting -r &> /dev/null
         ;;
@@ -888,14 +899,14 @@ check_package_manager(){
         ;;
     esac
     if [[ "$?" -eq 0 ]]; then
-        echo "Your system has pending updates. Please restart it and re-run the script."
-        echo "Exiting..."
+        log_error "Your system has pending updates. Please restart it and re-run the script."
+        echo -e "$ERROR Your system has pending updates. Please restart it and re-run the script. Exiting..."
         exit 1
     fi
 
     # Select package manager and update its cache
     echo "Updating system's package manager cache..."
-    case "$distro" in
+    case "$DISTRO" in
     "fedora")
         sudo dnf makecache -y
         package_manager="dnf"
@@ -921,6 +932,15 @@ ask_user_confirmation() {
 }
 
 
+# Function to count initial lines
+count_log_file_lines() {
+    if [[ -f "$LOG_FILE" ]]; then
+        wc -l < "$LOG_FILE"
+    else
+        echo 0
+    fi
+}
+
 main(){
     clear
     check_running_conditions
@@ -928,8 +948,8 @@ main(){
     clear
 
     while true; do
-        warning_log_messages=""
-        action_log_messages=""
+        clear
+        INITIAL_LINES="$(count_log_file_lines)"
         echo "--------------------------- Setup Options ---------------------------"
         echo "1- Minimal system setup"
         echo "   • Install additional packages"
@@ -1028,23 +1048,14 @@ main(){
                 ;;
         esac
         
-        if "$suggest_restart"; then
-            log_action "${BOLD_MAGENTA}Some changes need a system restart to take effect. Please RESTART your system to finish${NC}"
+        # Check if the log file exists and is not empty
+        if [[ -f "$LOG_FILE" && -s "$LOG_FILE" ]]; then
+            echo -e "\n-------------------------- Log Summary ----------------------------"
+            tail -n +$((INITIAL_LINES + 1)) "$LOG_FILE"
+            echo "--------------------------------------------------------------------"
         fi
-        
-        if [ -n "$warning_log_messages" ] || [ -n "$action_log_messages" ]; then
-            echo
-            echo "--------------------------------------------------------------------"
-            if [ -n "$warning_log_messages" ]; then
-                echo "---------------------- Summary of warnings -------------------------"
-                echo -e "$warning_log_messages"
-            fi
-            if [ -n "$action_log_messages" ]; then
-                echo "---------------------- Summary of actions --------------------------"
-                echo -e "$action_log_messages"
-            fi
-            echo -e "You are advised to READ the above summary before continuing. Pay attention to the ones in magenta.\nYou can also find them by scrolling up if you would like to keep performing actions."
-            echo "--------------------------------------------------------------------"
+        if "$suggest_restart"; then
+            echo -e "Some changes need a system restart to take effect. Please RESTART your system to finish."
         fi
         read -p "Press Enter to continue..."
     done
