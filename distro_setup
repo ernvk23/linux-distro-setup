@@ -517,7 +517,7 @@ install_flatpak_packages() {
                 fi
             done
             if [[ "${#packages_installed[@]}" -gt 0 ]]; then
-                log_success "Installed Flatpak packages: $packages_installed"
+                log_success "Installed Flatpak packages: ${packages_installed[*]}"
             fi
         else
             log_warning "Skipped installing: ${to_install[*]}"
