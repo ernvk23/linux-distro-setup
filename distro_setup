@@ -70,6 +70,7 @@ log_warning() {
 }
 
 log_error() {
+    echo -e "\e[31m[ERROR]\e[0m $1"
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') \e[31m[ERROR]\e[0m $1" >> "$LOG_FILE"
 }
 
@@ -607,8 +608,8 @@ enable_firefox_hw_acceleration(){
         
         # Check again for profiles
         if ! check_firefox_profiles; then
-            log_error "Failed to create a Firefox profile. Please run Firefox manually before executing this script."
-            return 1
+            log_warning "Failed to create a Firefox profile. Please run Firefox manually before executing this script."
+            return 0
         fi
     fi
      
@@ -620,7 +621,7 @@ enable_firefox_hw_acceleration(){
     if [ -f "$profile_file" ]; then
         profile_backup="$profile_file.backup_$(date +%Y%m%d_%H%M%S)"
         cp "$profile_file" "$profile_backup"
-        log_success "File $profile_file already existed. Backup $profile_backup created with original values."
+        log_info "File $profile_file already existed. Backup $profile_backup created with original values."
     fi
     
     set_pref() {
@@ -893,7 +894,7 @@ check_package_manager(){
         ;;
     esac
     if [[ "$?" -eq 0 ]]; then
-        log_warning "Your system has pending updates. Please restart it and re-run the script. Exiting..."
+        log_error "Your system has pending updates. Please restart it and re-run the script. Exiting..."
         exit 1
     fi
 
