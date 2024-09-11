@@ -4,6 +4,7 @@
 
 BOLD_MAGENTA='\e[1;35m'
 NC='\e[0m'
+ERROR="\e[31m[ERROR]\e[0m"
 TIMEOUT=10
 
 FEDORA_PACKAGES=(
@@ -70,7 +71,7 @@ log_warning() {
 }
 
 log_error() {
-    echo -e "\e[31m[ERROR]\e[0m $1"
+    #echo -e "\e[31m[ERROR]\e[0m $1"
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') \e[31m[ERROR]\e[0m $1" >> "$LOG_FILE"
 }
 
@@ -208,11 +209,13 @@ install_packages(){
     local packages=("$@")
     local to_install=()
 
+
     # Check for availability, do not add to the list if it is already installed
     for package in "${packages[@]}"; do
         if ! is_package_available "$package"; then
             if $is_dependency; then
-                log_error "Package $package not found. Please check manually. Exiting..."
+                log_error "Package $package not found. Please check manually."
+                echo -e "$ERROR Package $package not found. Please check manually. Exiting..."
                 exit 1
             else
                 log_warning "Skipped $package: package not found."
@@ -228,7 +231,8 @@ install_packages(){
             for package in "${to_install[@]}"; do
                 sudo $package_manager install -y "$package" #> /dev/null
                 if [ $? -ne 0 ]; then
-                    log_error "Failed to install $package. Please check manually. Exiting..."
+                    log_error "Failed to install $package. Please check manually."
+                    echo -e "$ERROR Failed to install $package. Please check manually. Exiting..."
                     exit 1
                 fi
             done
@@ -872,12 +876,14 @@ check_running_conditions(){
     done
 
     if ! "$found_distro"; then
-        log_error "The current Linux distribution is not supported. This script is only intended for running on ${supported_distros[@]}. Exiting..."
+        log_error "The current Linux distribution is not supported. This script is only intended for running on ${supported_distros[@]}."
+        echo -e "$ERROR The current Linux distribution is not supported. This script is only intended for running on ${supported_distros[@]}. Exiting..."
         exit 1
     fi
 
     if [[ -z "$WSL_DISTRO_NAME" && "$XDG_CURRENT_DESKTOP" != *GNOME* ]];  then
-        log_error "The current Desktop Environment is not supported. This script is only intended for running on GNOME. Exiting..."
+        log_error "The current Desktop Environment is not supported. This script is only intended for running on GNOME."
+        echo -e "$ERROR The current Desktop Environment is not supported. This script is only intended for running on GNOME. Exiting..."
         exit 1
     fi
 }
@@ -894,7 +900,8 @@ check_package_manager(){
         ;;
     esac
     if [[ "$?" -eq 0 ]]; then
-        log_error "Your system has pending updates. Please restart it and re-run the script. Exiting..."
+        log_error "Your system has pending updates. Please restart it and re-run the script."
+        echo -e "$ERROR Your system has pending updates. Please restart it and re-run the script. Exiting..."
         exit 1
     fi
 
