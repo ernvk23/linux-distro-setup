@@ -507,8 +507,18 @@ install_flatpak_packages() {
         read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
         if [[ "$choice" =~ [yY] ]]; then
             echo
-            flatpak install -y --noninteractive flathub "${to_install[@]}"
-            log_success "Installed flatpak packages: ${to_install[*]}"
+            local packages_installed=()
+            for package in "${to_install[@]}"; do
+                flatpak install -y --noninteractive flathub "$package"
+                if [ $? -ne 0 ]; then
+                    log_error "Failed to install Flatpak $package. Please check manually."
+                else
+                    packages_installed+=("$package")
+                fi
+            done
+            if [[ "${#packages_installed[@]}" -gt 0 ]]; then
+                log_success "Installed Flatpak packages: $packages_installed"
+            fi
         else
             log_warning "Skipped installing: ${to_install[*]}"
         fi
