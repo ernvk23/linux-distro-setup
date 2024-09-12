@@ -204,11 +204,11 @@ install_packages(){
     for package in "${packages[@]}"; do
         if ! is_package_available "$package"; then
             if $is_dependency; then
-                log_error "Package $package not found. Please check manually."
-                echo -e "$ERROR Package $package not found. Please check manually. Exiting..."
+                log_error "The package $package was not found. Manual check required."
+                echo -e "$ERROR The package $package was not found. Manual check required. Exiting..."
                 exit 1
             else
-                log_warning "Skipped $package: package not found."
+                log_warning "Skipped $package: the package was not found."
             fi
         elif ! is_package_installed "$package"; then
             to_install+=("$package")
@@ -223,8 +223,8 @@ install_packages(){
     if $is_dependency; then
         for package in "${to_install[@]}"; do
             if ! sudo $PACKAGE_MANAGER install -y "$package"; then
-                log_error "Failed to install $package. Please check manually."
-                echo -e "$ERROR Failed to install $package. Please check manually. Exiting..."
+                log_error "Failed to install $package. Manual check required."
+                echo -e "$ERROR Failed to install $package. Manual check required. Exiting..."
                 exit 1
             else
                 packages_installed+=("$package")
@@ -238,13 +238,13 @@ install_packages(){
             echo
             for package in "${to_install[@]}"; do
                 if ! sudo $PACKAGE_MANAGER install -y "$package"; then
-                    log_error "Failed to install  $package. Please check manually."
+                    log_error "Failed to install $package. Manual check required."
                 else
                     packages_installed+=("$package")
                 fi
             done
         else
-            log_warning "User skipped installing: ${to_install[*]}"
+            log_info "The user skipped installing: ${to_install[*]}"
             return 0
         fi
     fi
@@ -292,27 +292,27 @@ setup_terminal(){
     echo "Configuring zsh..."
 
     if [ -s ~/.zshrc ]; then
-        log_warning "The ~/.zshrc configuration exists. Action skipped. Delete it to overwrite and re-run."
+        log_warning "The ~/.zshrc configuration already exists. Action skipped. Delete it to overwrite and re-run."
     else
         add_config_to_zshrc
-        log_success "Added default configuration to ~/.zhsrc"
+        log_success "Added a default configuration to ~/.zshrc."
     fi
     
     echo
     echo "Adding zplug..."
 
     if [ -d ~/.zplug ]; then
-        log_warning "The ~/.zplug directory exists. Action skipped. Delete it to overwrite and re-run."
+        log_warning "The ~/.zplug directory already exists. Action skipped. Delete it to overwrite and re-run."
     else
 	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
         log_success "Downloaded Zplug."
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
-        log_warning "zplug is already sourced in ~/.zshrc. Action skipped. Verify missing plugins in ~/.zshrc if needed."
+        log_warning "Zplug is already sourced in ~/.zshrc. Action skipped. Verify any missing plugins in ~/.zshrc if needed."
     else
         add_zplug_to_zshrc
-        log_success "Added zplug configuration to ~/.zhsrc."
+        log_success "Added the zplug configuration to ~/.zshrc."
     fi
 
     echo
@@ -325,7 +325,7 @@ setup_terminal(){
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
         log_warning "Caskaydia Nerd Font is not needed on WSL. Action skipped."
     elif [ -d $font_path ]; then
-        log_warning "The directory $font_path exists. Action skipped. Delete it to overwrite and re-run."
+        log_warning "The directory $font_path already exists. Action skipped. Delete it to overwrite and re-run."
     else
         # Download the latest Caskaydia Nerd Font
         curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
@@ -333,19 +333,19 @@ setup_terminal(){
         rm ~/$font_name.zip
         # Update the font cache
         sudo fc-cache -f -v > /dev/null
-        log_success "Added Caskaydia Nerd Font to system's fonts. Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'"
+        log_success "Added Caskaydia Nerd Font to the system's fonts. Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'."
     fi
 
     echo
     echo "Setting the shell to zsh..."
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
-        log_warning "zsh is already the default shell. Action skipped."
+        log_warning "Zsh is already set as the default shell. Action skipped."
     else
         # Do not prompt the user again for a password
         sudo chsh -s "$(which zsh)" "$USER"
         SUGGEST_RESTART=true
-        log_success "Changed default shell to ZSH for the current user."
+        log_success "Changed the default shell to ZSH for the current user."
     fi
 }
 
@@ -388,13 +388,13 @@ setup_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        log_warning "The directory ${kickstart_path} already exists. Action skipped. Delete it to overwrite and re-run."
+        log_warning "The directory ${kickstart_path} already exists. Action skipped. Delete it to overwrite and re-run. Manual check required"
         return 0
     fi
 
     # Kickstart nvim
-    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
-    log_success "Added kickstart to Neovim configuration folder."
+    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$Manual check requiredHOME/.config}"/nvim
+    log_success "Added kickstart to the Neovim configuration folder."
 }
 
 
@@ -457,7 +457,7 @@ install_flatpak_packages() {
     local to_install=()
     for package in "${FLATPAK_PACKAGES[@]}"; do
 	    if ! is_flatpak_package_available "$package"; then
-            log_warning "Skipped $package: flatpak package not found."
+            log_warning "Skipped $package: the Flatpak package was not found."
         elif ! is_flatpak_package_installed "$package"; then
 		    to_install+=("$package")
 	    fi
@@ -476,13 +476,13 @@ install_flatpak_packages() {
         local packages_installed=()
         for package in "${to_install[@]}"; do
             if ! flatpak install -y flathub "$package"; then
-                log_error "Failed to install Flatpak $package. Please check manually."
+                log_error "Failed to install Flatpak $package. Manual check required."
             else
                 packages_installed+=("$package")
             fi
         done
     else
-        log_warning "User skipped installing: ${to_install[*]}"
+        log_info "User skipped installing: ${to_install[*]}"
         return 0
     fi
 
@@ -561,13 +561,13 @@ enable_hw_acceleration_fedora(){
 	# Make available vainfo
 	sudo dnf install -y libva-utils
 
-    log_success "Made available non-free media codecs."
+    log_success "Made non-free media codecs available."
 
     echo
     echo "Enabling Firefox hardware acceleration..."
 
-    # To enable hardware acceleration on Firefox (optional but highly advised) you should:\n Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true\n Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons&Themes->Plugins\n In about:config (type it in the search bar) set the following fields to true:\n media.ffmpeg.vaapi.enabled\n gfx.webrender.all (if you enabled HW on settings there is no need here)\n media.gmp-gmpopenh264.autoupdate\n media.gmp-gmpopenh264.enabled\n media.gmp-gmpopenh264.provider.enabled\n"
-    # (You can use 'vainfo' to check for AV1 hardware support.\n Typically, YouTube enforces this format without considering your system's compatibility,\n which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false.\n However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true.)
+    #To enable hardware acceleration on Firefox (optional but highly advised) you should: Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true. Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons & Themes->Plugins. In about:config (type it in the search bar) set the following fields to true: media.ffmpeg.vaapi.enabled, gfx.webrender.all (if you enabled HW on settings there is no need here), media.gmp-gmpopenh264.autoupdate, media.gmp-gmpopenh264.enabled, media.gmp-gmpopenh264.provider.enabled. You can use 'vainfo' to check for AV1 hardware support. Typically, YouTube enforces this format without considering your system's compatibility, which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false. However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true. Feel free to ask if you need further assistance!
+
     firefox_dir="$HOME/.mozilla/firefox"
 
     # Function to check for Firefox profiles
@@ -579,6 +579,7 @@ enable_hw_acceleration_fedora(){
     # Create a Firefox profile if none exists
     if ! check_firefox_profiles; then
         echo "No Firefox profile found. Creating a default profile..."
+        log_info "No Firefox profile found. Created a default profile."
         firefox --headless &> /dev/null &
         firefox_pid=$!
         
@@ -593,7 +594,7 @@ enable_hw_acceleration_fedora(){
         
         # Check again for profiles
         if ! check_firefox_profiles; then
-            log_error "Failed to create a Firefox profile. Please run Firefox manually before executing this script."
+            log_error "Failed to create a Firefox profile. Run Firefox at least once before executing this script."
             return 1
         fi
     fi
@@ -639,7 +640,7 @@ set_governor_to_performance_fedora(){
     echo "Setting the governor mode to performance..."
     
     if [[ "$DISTRO" != "fedora" ]]; then
-        log_warning "Current distribution $DISTRO is not Fedora. Skipped setting the CPU governor mode to performance."
+        log_warning "Current distribution $DISTRO is not Fedora. Skipped setting the governor mode to performance."
         return 0
     fi
 
@@ -648,7 +649,7 @@ set_governor_to_performance_fedora(){
     governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor) 
 
     if [ "$governor" = "performance" ]; then
-        log_warning "The CPU scaling governor is already set to 'performance'. No need to create a startup service for it. Action skipped."
+        log_warning "The governor mode is already set to 'performance'. No need to create a startup service for it. Action skipped."
         return 0
     fi
     
@@ -709,7 +710,7 @@ EOF
 
 set_yaru_icons_fedora(){
     echo
-    echo "Setting yaru icons... "
+    echo "Setting Yaru icons... "
 
     if [[ "$DISTRO" != "fedora" ]]; then
         log_warning "Current distribution $DISTRO is not Fedora. Skipped setting Yaru icons."
@@ -857,7 +858,7 @@ ensure_running_conditions(){
         ;;
     esac
     if [[ "$?" -eq 0 ]]; then
-        log_error "Your system has pending updates. Please restart it and re-run the script."
+        log_error "Your system has pending updates. Restart it and re-run the script."
         echo -e "$ERROR Your system has pending updates. Please restart it and re-run the script. Exiting..."
         exit 1
     fi
