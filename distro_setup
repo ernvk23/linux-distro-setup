@@ -67,7 +67,8 @@ FLATPAK_PACKAGES=(
 )
 
 
-# Logging functions with timestamps
+## Helper functions
+
 log_info() {
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') \e[35m[INFO]\e[0m $1" >> "$LOG_FILE"
 }
@@ -518,7 +519,15 @@ set_faster_downloads_fedora(){
 }
 
 
-install_non_free_media_codecs(){
+enable_hw_acceleration_fedora(){
+    echo
+    echo "Enabling system and Firefox hardware acceleration support..."
+	
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution $DISTRO is not Fedora. Skipped enabling system and Firefox hardware acceleration support."
+        return 0
+    fi
+
     echo
     echo "Installing non free media codecs..."
 
@@ -557,10 +566,8 @@ install_non_free_media_codecs(){
 	# Make available vainfo
 	sudo dnf install -y libva-utils
 
-    log_success "Installed non-free media codecs."
-}
+    log_success "Made available non-free media codecs."
 
-enable_firefox_hw_acceleration(){
     echo
     echo "Enabling Firefox hardware acceleration..."
 
@@ -591,8 +598,8 @@ enable_firefox_hw_acceleration(){
         
         # Check again for profiles
         if ! check_firefox_profiles; then
-            log_warning "Failed to create a Firefox profile. Please run Firefox manually before executing this script."
-            return 0
+            log_error "Failed to create a Firefox profile. Please run Firefox manually before executing this script."
+            return 1
         fi
     fi
      
@@ -601,7 +608,7 @@ enable_firefox_hw_acceleration(){
     
     # Backup the existing user.js file if it exists
     profile_file="$profile_path/user.js"
-    if [ -f "$profile_file" ]; then
+    if [ -s "$profile_file" ]; then
         profile_backup="$profile_file.backup_$(date +%Y%m%d_%H%M%S)"
         cp "$profile_file" "$profile_backup"
         log_info "File $profile_file already existed. Backup $profile_backup created with original values."
@@ -629,20 +636,6 @@ enable_firefox_hw_acceleration(){
     fi
 
     log_success "Enabled Firefox's hardware acceleration. You can check the file $profile_file to see the modified flags."
-}
-
-
-enable_hw_acceleration_support_fedora(){
-    echo
-    echo "Enabling system and Firefox hardware acceleration support..."
-	
-    if [[ "$DISTRO" != "fedora" ]]; then
-        log_warning "Current distribution $DISTRO is not Fedora. Skipped enabling system and Firefox hardware acceleration support."
-        return 0
-    fi
-
-    install_non_free_media_codecs
-    enable_firefox_hw_acceleration
 }
 
 
@@ -692,7 +685,7 @@ WantedBy=multi-user.target
 EOF
 )
 
-    if [ -f "$script_path" ]; then
+    if [ -s "$script_path" ]; then
         log_warning "The $script_name already exists in $script_dir. No need to create it. Action skipped."
         return 0
     fi
@@ -701,8 +694,8 @@ EOF
     echo "$script_content" > "$script_path"
     sudo chmod +x "$script_path"
 
-    if [ -f "$service_path" ]; then
-        log_warning "Skipped creating $service_name because it already exists in $service_dir. Manual check required. You are advised to run:\nsudo systemctl status $service_name"
+    if [ -s "$service_path" ]; then
+        log_warning "The $service_name already exists in $service_dir. Manual check required. You are advised to run:\nsudo systemctl status $service_name"
         return 0
     fi
 
@@ -789,6 +782,7 @@ disable_ppd_color_change_fedora(){
         log_success "Disabled gnome power-profile-daemon (PPD) color change."
     fi
 }
+
 
 install_cloudflare_warp_fedora(){
     # WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
@@ -901,7 +895,7 @@ ask_user_confirmation() {
     esac
 }
 
-# Function to count initial lines
+
 count_log_file_lines() {
     if [[ -f "$LOG_FILE" ]]; then
         wc -l < "$LOG_FILE"
@@ -909,6 +903,7 @@ count_log_file_lines() {
         echo 0
     fi
 }
+
 
 main(){
     clear
@@ -973,7 +968,7 @@ main(){
                 if ! ask_user_confirmation "You selected to enable system's and Firefox hardware acceleration support. Would you like to proceed?"; then
                     continue
                 fi
-                enable_hw_acceleration_support_fedora
+                enable_hw_acceleration_fedora
                 ;;            
             5)
                 if ! ask_user_confirmation "You selected to disable GNOME power-profile-daemon color change. Would you like to proceed?"; then
