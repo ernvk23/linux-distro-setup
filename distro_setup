@@ -194,23 +194,6 @@ EOF
 
 
 install_packages(){
-    #############################
-    #############################
-    # Install system packages or dependencies based on the configured package manager.
-    # This function checks if packages are installed and available, prompts the user
-    # for confirmation, and installs the required packages using the system's package manager.
-    #
-    # Globals:
-    #   PACKAGE_MANAGER: str (The package manager to be used for installation)
-    #
-    # Arguments:
-    #   is_dependency: boolean (Flag to indicate if the packages are dependencies)
-    #   packages: list (List of packages to be installed)
-    #
-    # Returns:
-    #   None
-    #############################
-
     local is_dependency=$1
     shift
     local packages=("$@")
@@ -232,33 +215,42 @@ install_packages(){
         fi
     done
 
-    if [[ "${#to_install[@]}" -gt 0 ]]; then
-        if $is_dependency; then
-            # The for loop is needed to know which dependency fails to install if any
+    if [[ "${#to_install[@]}" -eq 0 ]]; then
+        return 0
+    fi
+
+    local packages_installed=()
+    if $is_dependency; then
+        for package in "${to_install[@]}"; do
+            if ! sudo $PACKAGE_MANAGER install -y "$package"; then
+                log_error "Failed to install $package. Please check manually."
+                echo -e "$ERROR Failed to install $package. Please check manually. Exiting..."
+                exit 1
+            else
+                packages_installed+=("$package")
+            fi
+        done
+    else
+        echo "The following packages will be installed: ${to_install[*]}"
+        echo -e "${HIGHLIGHT}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
+        read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
+        if [[ "$choice" =~ [yY] ]]; then
+            echo
             for package in "${to_install[@]}"; do
-                sudo $PACKAGE_MANAGER install -y "$package" #> /dev/null
-                if [ $? -ne 0 ]; then
-                    log_error "Failed to install $package. Please check manually."
-                    echo -e "$ERROR Failed to install $package. Please check manually. Exiting..."
-                    exit 1
+                if ! sudo $PACKAGE_MANAGER install -y "$package"; then
+                    log_error "Failed to install  $package. Please check manually."
+                else
+                    packages_installed+=("$package")
                 fi
             done
-            # Check the status code of the installation command
-            log_success "Installed packages: ${to_install[*]}"
         else
-            echo "The following packages will be installed: ${to_install[*]}"
-            echo -e "${HIGHLIGHT}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
-            read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
-
-            if [[ "$choice" =~ [yY] ]]; then
-                echo
-                sudo $PACKAGE_MANAGER install -y "${to_install[@]}" #> /dev/null
-                # Check the status code of the installation command
-                log_success "Installed packages: ${to_install[*]}"
-            else
-                log_warning "Skipped installing: ${to_install[*]}"
-            fi
+            log_warning "User skipped installing: ${to_install[*]}"
+            return 0
         fi
+    fi
+
+    if [[ "${#packages_installed[@]}" -gt 0 ]]; then
+        log_success "Installed packages: ${packages_installed[*]}"
     fi
 }
 
@@ -471,28 +463,31 @@ install_flatpak_packages() {
 	    fi
     done
 
-    if [[ "${#to_install[@]}" -gt 0 ]]; then
-        echo "The following Flatpak packages will be installed: ${to_install[*]}"
-        echo -e "${HIGHLIGHT} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
-        # Read user input with a timeout
-        read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
-        if [[ "$choice" =~ [yY] ]]; then
-            echo
-            local packages_installed=()
-            for package in "${to_install[@]}"; do
-                flatpak install -y flathub "$package"
-                if [ $? -ne 0 ]; then
-                    log_error "Failed to install Flatpak $package. Please check manually."
-                else
-                    packages_installed+=("$package")
-                fi
-            done
-            if [[ "${#packages_installed[@]}" -gt 0 ]]; then
-                log_success "Installed Flatpak packages: ${packages_installed[*]}"
+    if [[ "${#to_install[@]}" -eq 0 ]]; then
+        return 0
+    fi
+
+    echo "The following Flatpak packages will be installed: ${to_install[*]}"
+    echo -e "${HIGHLIGHT} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
+    # Read user input with a timeout
+    read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
+    if [[ "$choice" =~ [yY] ]]; then
+        echo
+        local packages_installed=()
+        for package in "${to_install[@]}"; do
+            if ! flatpak install -y flathub "$package"; then
+                log_error "Failed to install Flatpak $package. Please check manually."
+            else
+                packages_installed+=("$package")
             fi
-        else
-            log_warning "Skipped installing: ${to_install[*]}"
-        fi
+        done
+    else
+        log_warning "User skipped installing: ${to_install[*]}"
+        return 0
+    fi
+
+    if [[ "${#packages_installed[@]}" -gt 0 ]]; then
+        log_success "Installed Flatpak packages: ${packages_installed[*]}"
     fi
 }
 
