@@ -3,14 +3,14 @@
 # Automate the setup process of a linux DISTRO clean install
 
 ## Color Constants
-MARKER='\e[1;35m'
+HIGHLIGHT='\e[1;35m'
 NC='\e[0m'  # No Color
 ERROR_COLOR="\e[31m[ERROR]\e[0m"
 SUCCESS_COLOR="\e[32m[SUCCESS]\e[0m"
 WARNING_COLOR="\e[93m[WARNING]\e[0m"
 INFO_COLOR="\e[35m[INFO]\e[0m"
 
-## Timeout given to the user to spik optional and flatpack packages installations
+## Timeout given to the user to skip optional and flatpack packages installations
 TIMEOUT=10
 
 ## Global Variables
@@ -45,7 +45,7 @@ DEBIAN_PACKAGES=(
     "python3-pip"
 )
 
-DEBIAN_NON_WSL=(
+DEBIAN_NON_WSL_PACKAGES=(
     "gnome-tweaks"
     "gnome-shell-extension-appindicator"
     "gnome-shell-pomodoro"
@@ -247,7 +247,7 @@ install_packages(){
             log_success "Installed packages: ${to_install[*]}"
         else
             echo "The following packages will be installed: ${to_install[*]}"
-            echo -e "${MARKER}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
+            echo -e "${HIGHLIGHT}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
             read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
 
             if [[ "$choice" =~ [yY] ]]; then
@@ -280,7 +280,7 @@ install_optional_packages() {
     "debian")
         packages=("${DEBIAN_PACKAGES[@]}")
         if [[ -z "$WSL_DISTRO_NAME" ]]; then
-            packages+=("${DEBIAN_NON_WSL[@]}")
+            packages+=("${DEBIAN_NON_WSL_PACKAGES[@]}")
         fi
         ;;
     esac
@@ -401,7 +401,7 @@ setup_neovim(){
     fi
 
     # Kickstart nvim
-    git clone https://giSthub.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
+    git clone https://github.com/nvim-lua/kickstart.nvim.git "${XDG_CONFIG_HOME:-$HOME/.config}"/nvim
     log_success "Added kickstart to Neovim configuration folder."
 }
 
@@ -473,7 +473,7 @@ install_flatpak_packages() {
 
     if [[ "${#to_install[@]}" -gt 0 ]]; then
         echo "The following Flatpak packages will be installed: ${to_install[*]}"
-        echo -e "${MARKER} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
+        echo -e "${HIGHLIGHT} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
         # Read user input with a timeout
         read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
         if [[ "$choice" =~ [yY] ]]; then
@@ -911,7 +911,6 @@ main(){
     clear
 
     while true; do
-        clear
         INITIAL_LINES="$(count_log_file_lines)"
         echo "--------------------------- Setup Options ---------------------------"
         echo "1- Minimal system setup"
