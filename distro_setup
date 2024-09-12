@@ -480,7 +480,7 @@ install_flatpak_packages() {
             echo
             local packages_installed=()
             for package in "${to_install[@]}"; do
-                flatpak install -y --noninteractive flathub "$package"
+                flatpak install -y flathub "$package"
                 if [ $? -ne 0 ]; then
                     log_error "Failed to install Flatpak $package. Please check manually."
                 else
