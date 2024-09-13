@@ -204,49 +204,46 @@ install_packages(){
     shift
     local packages=("$@")
     local to_install=()
-    local dependency_packages=()
+    local not_available=()
 
-    # Check for availability, do not add to the list if it is already installed
-    
+    # Check which packages need to be installed
     for package in "${packages[@]}"; do
-        if is_package_installed "$package"; then
-            continue
-        fi
-
-        if is_package_available "$package"; then
-            to_install+=("$package")
-        else
-            if $is_dependency; then
-                dependency_packages+=("$package")
-                log_error "The package $package was not found."
-                echo -e "$ERROR The package $package was not found. Manual check required. Exiting..."
-                exit 1
+        if ! is_package_installed "$package"; then
+            if is_package_available "$package"; then
+                to_install+=("$package")
             else
-                log_error "Skipped $package: the package was not found."
+                not_available+=("$package")
             fi
         fi
     done
 
-    if [[ "${#to_install[@]}" -eq 0 ]]; then
+    # Report on unavailable packages
+    if [[ ${#not_available[@]} -gt 0 ]]; then
+        log_error "Packages not available: ${not_available[*]}"
+        if $is_dependency; then
+            echo -e "The following packages are not available: ${not_available[*]}. Manual check required. Exiting..."
+            exit 1
+        fi
+    fi
+
+    # If no packages to install, exit
+    if [[ ${#to_install[@]} -eq 0 ]]; then
         return 0
     fi
 
-    if $is_dependency; then
-        sudo $PACKAGE_MANAGER install -y "${to_install[@]}"
-    else
-        echo "The following packages will be installed: ${to_install[*]}"
+    # Install packages
+    echo "The following packages will be installed: ${to_install[*]}"
+    if ! $is_dependency; then
         echo -e "${HIGHLIGHT}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
-        
         flush_input_buffer
         read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
-        if [[ "$choice" =~ [yY] ]]; then
-            echo
-            sudo $PACKAGE_MANAGER install -y "${to_install[@]}"
-        else
+        if [[ ! "$choice" =~ [yY] ]]; then
             log_info "The user skipped installing: ${to_install[*]}"
             return 0
         fi
     fi
+
+    sudo $PACKAGE_MANAGER install -y "${to_install[@]}"
 
     # Check which packages were actually installed
     local packages_installed=()
@@ -266,20 +263,10 @@ install_packages(){
 
     if [[ "${#packages_failed[@]}" -gt 0 ]]; then
         log_error "Failed to install packages: ${packages_failed[*]}"
-    fi
-
-    # Check if any dependency packages failed to install
-    local failed_dependencies=()
-    for package in "${dependency_packages[@]}"; do
-        if ! is_package_installed "$package"; then
-            failed_dependencies+=("$package")
+        if $is_dependency; then
+            echo -e "$ERROR Failed to install the following packages: ${packages_failed[*]}. Manual check required. Exiting..."
+            exit 1
         fi
-    done
-
-    if [[ "${#failed_dependencies[@]}" -gt 0 ]]; then
-        log_error "Failed to install dependency packages: ${failed_dependencies[*]}"
-        echo -e "$ERROR Failed to install dependency packages. Manual check required. Exiting..."
-        exit 1
     fi
 }
 
@@ -495,17 +482,21 @@ install_flatpak_packages() {
     fi
 
     local to_install=()
-    for package in "${FLATPAK_PACKAGES[@]}"; do
-	    if is_flatpak_package_installed "$package"; then
-            continue
-        fi
+    local not_available=()
 
-        if is_flatpak_package_available "$package"; then
-            to_install+=("$package")
-        else
-            log_error "Skipped $package: the Flatpak package was not found."
-	    fi
+    for package in "${FLATPAK_PACKAGES[@]}"; do
+        if ! is_package_installed "$package"; then
+            if is_package_available "$package"; then
+                to_install+=("$package")
+            else
+                not_available+=("$package")
+            fi
+        fi
     done
+
+    if [[ ${#not_available[@]} -gt 0 ]]; then
+        log_error "Flatpak packages not available: ${not_available[*]}"
+    fi
 
     if [[ "${#to_install[@]}" -eq 0 ]]; then
         return 0
@@ -516,14 +507,12 @@ install_flatpak_packages() {
     # Read user input with a timeout
     flush_input_buffer
     read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
-    if [[ "$choice" =~ [yY] ]]; then
-        echo
-        # Install all packages in a single command
-        flatpak install -y flathub "${to_install[@]}"
-    else
-        log_info "User skipped installing: ${to_install[*]}"
+    if [[ ! "$choice" =~ [yY] ]]; then
+        log_info "The user skipped installing: ${to_install[*]}"
         return 0
     fi
+
+    flatpak install -y flathub "${to_install[@]}"
             
     # Check which packages were actually installed
     local packages_installed=()
