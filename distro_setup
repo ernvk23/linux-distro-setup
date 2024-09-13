@@ -198,7 +198,7 @@ install_packages(){
     shift
     local packages=("$@")
     local to_install=()
-
+    local dependency_packages=()
 
     # Check for availability, do not add to the list if it is already installed
     for package in "${packages[@]}"; do
@@ -208,10 +208,13 @@ install_packages(){
                 echo -e "$ERROR The package $package was not found. Manual check required. Exiting..."
                 exit 1
             else
-                log_warning "Skipped $package: the package was not found."
+                log_error "Skipped $package: the package was not found."
             fi
         elif ! is_package_installed "$package"; then
             to_install+=("$package")
+            if $is_dependency; then
+                dependency_packages+=("$package")
+            fi
         fi
     done
 
@@ -219,38 +222,52 @@ install_packages(){
         return 0
     fi
 
-    local packages_installed=()
     if $is_dependency; then
-        for package in "${to_install[@]}"; do
-            if ! sudo $PACKAGE_MANAGER install -y "$package"; then
-                log_error "Failed to install $package."
-                echo -e "$ERROR Failed to install $package. Manual check required. Exiting..."
-                exit 1
-            else
-                packages_installed+=("$package")
-            fi
-        done
+        sudo $PACKAGE_MANAGER install -y "${to_install[@]}"
     else
         echo "The following packages will be installed: ${to_install[*]}"
         echo -e "${HIGHLIGHT}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
         read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
         if [[ "$choice" =~ [yY] ]]; then
             echo
-            for package in "${to_install[@]}"; do
-                if ! sudo $PACKAGE_MANAGER install -y "$package"; then
-                    log_error "Failed to install $package."
-                else
-                    packages_installed+=("$package")
-                fi
-            done
+            sudo $PACKAGE_MANAGER install -y "${to_install[@]}"
         else
             log_info "The user skipped installing: ${to_install[*]}"
             return 0
         fi
     fi
 
+    # Check which packages were actually installed
+    local packages_installed=()
+    local packages_failed=()
+    for package in "${to_install[@]}"; do
+        if is_package_installed "$package"; then
+            packages_installed+=("$package")
+        else
+            packages_failed+=("$package")
+        fi
+    done
+
     if [[ "${#packages_installed[@]}" -gt 0 ]]; then
-        log_success "Installed packages: ${packages_installed[*]}"
+        log_success "Successfully installed packages: ${packages_installed[*]}"
+    fi
+
+    if [[ "${#packages_failed[@]}" -gt 0 ]]; then
+        log_error "Failed to install packages: ${packages_failed[*]}"
+    fi
+
+    # Check if any dependency packages failed to install
+    local failed_dependencies=()
+    for package in "${dependency_packages[@]}"; do
+        if ! is_package_installed "$package"; then
+            failed_dependencies+=("$package")
+        fi
+    done
+
+    if [[ "${#failed_dependencies[@]}" -gt 0 ]]; then
+        log_error "Failed to install dependency packages: ${failed_dependencies[*]}"
+        echo -e "$ERROR Failed to install dependency packages. Manual check required. Exiting..."
+        exit 1
     fi
 }
 
@@ -466,7 +483,7 @@ install_flatpak_packages() {
     local to_install=()
     for package in "${FLATPAK_PACKAGES[@]}"; do
 	    if ! is_flatpak_package_available "$package"; then
-            log_warning "Skipped $package: the Flatpak package was not found."
+            log_error "Skipped $package: the Flatpak package was not found."
         elif ! is_flatpak_package_installed "$package"; then
 		    to_install+=("$package")
 	    fi
@@ -482,21 +499,31 @@ install_flatpak_packages() {
     read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
     if [[ "$choice" =~ [yY] ]]; then
         echo
+        # Install all packages in a single command
+        flatpak install -y flathub "${to_install[@]}"
+        
+        # Check which packages were actually installed
         local packages_installed=()
+        local packages_failed=()
+
         for package in "${to_install[@]}"; do
-            if ! flatpak install -y flathub "$package"; then
-                log_error "Failed to install Flatpak $package."
-            else
+            if is_flatpak_package_installed "$package"; then
                 packages_installed+=("$package")
+            else
+                packages_failed+=("$package")
             fi
         done
+
+        if [[ "${#packages_installed[@]}" -gt 0 ]]; then
+            log_success "Successfully installed Flatpak packages: ${packages_installed[*]}"
+        fi
+
+        if [[ "${#packages_failed[@]}" -gt 0 ]]; then
+            log_error "Failed to install Flatpak packages: ${packages_failed[*]}"
+        fi
     else
         log_info "User skipped installing: ${to_install[*]}"
         return 0
-    fi
-
-    if [[ "${#packages_installed[@]}" -gt 0 ]]; then
-        log_success "Installed Flatpak packages: ${packages_installed[*]}"
     fi
 }
 
