@@ -207,19 +207,22 @@ install_packages(){
     local dependency_packages=()
 
     # Check for availability, do not add to the list if it is already installed
+    
     for package in "${packages[@]}"; do
-        if ! is_package_available "$package"; then
+        if is_package_installed "$package"; then
+            continue
+        fi
+
+        if is_package_available "$package"; then
+            to_install+=("$package")
+        else
             if $is_dependency; then
+                dependency_packages+=("$package")
                 log_error "The package $package was not found."
                 echo -e "$ERROR The package $package was not found. Manual check required. Exiting..."
                 exit 1
             else
                 log_error "Skipped $package: the package was not found."
-            fi
-        elif ! is_package_installed "$package"; then
-            to_install+=("$package")
-            if $is_dependency; then
-                dependency_packages+=("$package")
             fi
         fi
     done
@@ -248,6 +251,7 @@ install_packages(){
     # Check which packages were actually installed
     local packages_installed=()
     local packages_failed=()
+
     for package in "${to_install[@]}"; do
         if is_package_installed "$package"; then
             packages_installed+=("$package")
@@ -492,10 +496,14 @@ install_flatpak_packages() {
 
     local to_install=()
     for package in "${FLATPAK_PACKAGES[@]}"; do
-	    if ! is_flatpak_package_available "$package"; then
+	    if is_flatpak_package_installed "$package"; then
+            continue
+        fi
+
+        if is_flatpak_package_available "$package"; then
+            to_install+=("$package")
+        else
             log_error "Skipped $package: the Flatpak package was not found."
-        elif ! is_flatpak_package_installed "$package"; then
-		    to_install+=("$package")
 	    fi
     done
 
@@ -512,29 +520,29 @@ install_flatpak_packages() {
         echo
         # Install all packages in a single command
         flatpak install -y flathub "${to_install[@]}"
-        
-        # Check which packages were actually installed
-        local packages_installed=()
-        local packages_failed=()
-
-        for package in "${to_install[@]}"; do
-            if is_flatpak_package_installed "$package"; then
-                packages_installed+=("$package")
-            else
-                packages_failed+=("$package")
-            fi
-        done
-
-        if [[ "${#packages_installed[@]}" -gt 0 ]]; then
-            log_success "Successfully installed Flatpak packages: ${packages_installed[*]}"
-        fi
-
-        if [[ "${#packages_failed[@]}" -gt 0 ]]; then
-            log_error "Failed to install Flatpak packages: ${packages_failed[*]}"
-        fi
     else
         log_info "User skipped installing: ${to_install[*]}"
         return 0
+    fi
+            
+    # Check which packages were actually installed
+    local packages_installed=()
+    local packages_failed=()
+
+    for package in "${to_install[@]}"; do
+        if is_flatpak_package_installed "$package"; then
+            packages_installed+=("$package")
+        else
+            packages_failed+=("$package")
+        fi
+    done
+
+    if [[ "${#packages_installed[@]}" -gt 0 ]]; then
+        log_success "Successfully installed Flatpak packages: ${packages_installed[*]}"
+    fi
+
+    if [[ "${#packages_failed[@]}" -gt 0 ]]; then
+        log_error "Failed to install Flatpak packages: ${packages_failed[*]}"
     fi
 }
 
