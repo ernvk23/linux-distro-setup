@@ -129,6 +129,11 @@ is_flatpak_package_available() {
 }
 
 
+flush_input_buffer(){
+    # To avoid any pressed key before prompting anything to the user
+    while read -t 0.1 -n 1; do : ; done
+}
+
 # Function to populate the .zshrc file
 add_config_to_zshrc() {
     local zshrc_path="$HOME/.zshrc"
@@ -182,6 +187,7 @@ bindkey "$terminfo[kcud1]" history-substring-search-down
 # zplug - install/load new plugins when zsh is started or reloaded
 if ! zplug check; then
     echo -e "Install missing plugins from ~/.zshrc? [y/n]: "
+    while read -t 0.1 -n 1; do : ; done
 	if read -q; then
 	    echo; zplug install
 	fi
@@ -227,6 +233,8 @@ install_packages(){
     else
         echo "The following packages will be installed: ${to_install[*]}"
         echo -e "${HIGHLIGHT}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
+        
+        flush_input_buffer
         read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
         if [[ "$choice" =~ [yY] ]]; then
             echo
@@ -438,9 +446,11 @@ setup_git(){
         return 0
     fi
 
+    flush_input_buffer
     read -p "Enter the username for your github account: " username
     git config --global user.name "$username"
 
+    flush_input_buffer
     read -p "Enter the email for your github account: " email
     git config --global user.email "$email"
 
@@ -496,6 +506,7 @@ install_flatpak_packages() {
     echo "The following Flatpak packages will be installed: ${to_install[*]}"
     echo -e "${HIGHLIGHT} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
     # Read user input with a timeout
+    flush_input_buffer
     read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
     if [[ "$choice" =~ [yY] ]]; then
         echo
@@ -925,6 +936,7 @@ ask_user_confirmation() {
     local prompt="$1"
     local response
 
+    flush_input_buffer
     read -p "$prompt (y/n): " response
     case $response in
         [Yy]* ) return 0;;
@@ -974,6 +986,7 @@ main(){
         echo "--------------------------------------------------------------------"
         echo "Note: All options will only be applied if not already set/configured."
 
+        flush_input_buffer
         read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9 or q): " selection
         case "$selection" in
             1)
@@ -1075,6 +1088,7 @@ main(){
         if "$SUGGEST_RESTART"; then
             echo -e "Some changes need a system restart to take effect. Please RESTART your system to finish."
         fi
+        flush_input_buffer
         read -p "Press Enter to continue..."
     done
 }
