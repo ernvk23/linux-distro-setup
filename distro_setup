@@ -200,16 +200,42 @@ EOF
 
 
 install_packages(){
+    # For regular packages
+    #install_packages false false package1 package2 package3
+
+    # For dependency packages
+    #install_packages true false dep1 dep2 dep3
+
+    # For Flatpak packages
+    #install_packages false true flatpak1 flatpak2 flatpak3
+
     local is_dependency=$1
-    shift
+    local is_flatpak=$2
+    shift 2
     local packages=("$@")
     local to_install=()
     local not_available=()
 
+    # Pick the type of check_installed and check_available function to be used
+    local install_cmd
+    local check_installed
+    local check_available
+
+    if ! $is_flatpak; then
+        check_installed="is_package_installed"
+        check_available="is_package_available"
+        install_cmd="sudo $PACKAGE_MANAGER install -y"
+    else
+        check_installed="is_flatpak_package_installed"
+        check_available="is_flatpak_package_available"
+        install_cmd="flatpak install -y flathub"
+    fi
+
+
     # Check which packages need to be installed
     for package in "${packages[@]}"; do
-        if ! is_package_installed "$package"; then
-            if is_package_available "$package"; then
+        if ! $check_installed "$package"; then
+            if $check_available "$package"; then
                 to_install+=("$package")
             else
                 not_available+=("$package")
@@ -243,14 +269,14 @@ install_packages(){
         fi
     fi
 
-    sudo $PACKAGE_MANAGER install -y "${to_install[@]}"
+    $install_cmd "${to_install[@]}" "${to_install[@]}"
 
     # Check which packages were actually installed
     local packages_installed=()
     local packages_failed=()
 
     for package in "${to_install[@]}"; do
-        if is_package_installed "$package"; then
+        if $check_installed "$package"; then
             packages_installed+=("$package")
         else
             packages_failed+=("$package")
@@ -258,7 +284,7 @@ install_packages(){
     done
 
     if [[ "${#packages_installed[@]}" -gt 0 ]]; then
-        log_success "Successfully installed packages: ${packages_installed[*]}"
+        log_success "Installed packages: ${packages_installed[*]}"
     fi
 
     if [[ "${#packages_failed[@]}" -gt 0 ]]; then
@@ -293,7 +319,7 @@ install_optional_packages() {
         ;;
     esac
     
-    install_packages false "${packages[@]}"
+    install_packages false false "${packages[@]}"
 }
 
 
@@ -302,7 +328,7 @@ setup_terminal(){
     echo "Setting up terminal..."
     
     local dependencies=("zsh" "curl" "unzip" "git")
-    install_packages true "${dependencies[@]}"
+    install_packages true false "${dependencies[@]}"
 
     echo
     echo "Configuring zsh..."
@@ -382,7 +408,7 @@ setup_neovim(){
         case "$DISTRO" in
         "fedora" | "ubuntu")
             dependencies=("git" "neovim")
-            install_packages true "${dependencies[@]}"
+            install_packages true false "${dependencies[@]}"
             ;;
         "debian")
             dependencies=(
@@ -395,7 +421,7 @@ setup_neovim(){
                 "curl"
                 "build-essential"
             )
-            install_packages true "${dependencies[@]}"
+            install_packages true false "${dependencies[@]}"
             cd ~/ && git clone https://github.com/neovim/neovim
             cd neovim && git checkout stable
             make CMAKE_BUILD_TYPE=Release
@@ -426,7 +452,7 @@ setup_git(){
     echo "Setting up git..."
 
     local dependencies=("git")
-    install_packages true "${dependencies[@]}"
+    install_packages true false "${dependencies[@]}"
 
     # Check if user.name is configured
     git_name="$(git config --get user.name)"
@@ -469,7 +495,7 @@ install_flatpak_packages() {
     if ! is_package_installed "flatpak"; then
         local dependencies=("flatpak" "gnome-software-plugin-flatpak")        
         
-        install_packages true "${dependencies[@]}"
+        install_packages true false "${dependencies[@]}"
         
         # Add flathub remote if not already added
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
@@ -484,55 +510,7 @@ install_flatpak_packages() {
     local to_install=()
     local not_available=()
 
-    for package in "${FLATPAK_PACKAGES[@]}"; do
-        if ! is_package_installed "$package"; then
-            if is_package_available "$package"; then
-                to_install+=("$package")
-            else
-                not_available+=("$package")
-            fi
-        fi
-    done
-
-    if [[ ${#not_available[@]} -gt 0 ]]; then
-        log_error "Flatpak packages not available: ${not_available[*]}"
-    fi
-
-    if [[ "${#to_install[@]}" -eq 0 ]]; then
-        return 0
-    fi
-
-    echo "The following Flatpak packages will be installed: ${to_install[*]}"
-    echo -e "${HIGHLIGHT} Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
-    # Read user input with a timeout
-    flush_input_buffer
-    read -t "$TIMEOUT" -n 1 -r -p "Proceed? (press 'y/Y' or wait): " choice || choice='y'
-    if [[ ! "$choice" =~ [yY] ]]; then
-        log_info "The user skipped installing: ${to_install[*]}"
-        return 0
-    fi
-
-    flatpak install -y flathub "${to_install[@]}"
-            
-    # Check which packages were actually installed
-    local packages_installed=()
-    local packages_failed=()
-
-    for package in "${to_install[@]}"; do
-        if is_flatpak_package_installed "$package"; then
-            packages_installed+=("$package")
-        else
-            packages_failed+=("$package")
-        fi
-    done
-
-    if [[ "${#packages_installed[@]}" -gt 0 ]]; then
-        log_success "Successfully installed Flatpak packages: ${packages_installed[*]}"
-    fi
-
-    if [[ "${#packages_failed[@]}" -gt 0 ]]; then
-        log_error "Failed to install Flatpak packages: ${packages_failed[*]}"
-    fi
+    install_packages false true "${FLATPAK_PACKAGES[@]}"
 }
 
 
@@ -774,7 +752,7 @@ set_yaru_icons_fedora(){
     fi
 
     local dependencies=("yaru-theme") 
-    install_packages true "${dependencies[@]}"
+    install_packages true false "${dependencies[@]}"
 
     #gsettings set org.gnome.desktop.interface gtk-theme 'Yaru-prussiangreen-dark'
     #gsettings set org.gnome.desktop.wm.preferences theme 'Yaru'
