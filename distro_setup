@@ -204,7 +204,7 @@ install_packages(){
     for package in "${packages[@]}"; do
         if ! is_package_available "$package"; then
             if $is_dependency; then
-                log_error "The package $package was not found. Manual check required."
+                log_error "The package $package was not found."
                 echo -e "$ERROR The package $package was not found. Manual check required. Exiting..."
                 exit 1
             else
@@ -223,7 +223,7 @@ install_packages(){
     if $is_dependency; then
         for package in "${to_install[@]}"; do
             if ! sudo $PACKAGE_MANAGER install -y "$package"; then
-                log_error "Failed to install $package. Manual check required."
+                log_error "Failed to install $package."
                 echo -e "$ERROR Failed to install $package. Manual check required. Exiting..."
                 exit 1
             else
@@ -238,7 +238,7 @@ install_packages(){
             echo
             for package in "${to_install[@]}"; do
                 if ! sudo $PACKAGE_MANAGER install -y "$package"; then
-                    log_error "Failed to install $package. Manual check required."
+                    log_error "Failed to install $package."
                 else
                     packages_installed+=("$package")
                 fi
@@ -292,7 +292,8 @@ setup_terminal(){
     echo "Configuring zsh..."
 
     if [ -s ~/.zshrc ]; then
-        log_warning "The ~/.zshrc configuration already exists. Action skipped. Delete it to overwrite and re-run."
+        log_warning "The ~/.zshrc configuration already exists. Skipped modifying it."
+        log_info "To overwrite the existing ~/.zshrc configuration, delete it and re-run the command."
     else
         add_config_to_zshrc
         log_success "Added a default configuration to ~/.zshrc."
@@ -302,14 +303,16 @@ setup_terminal(){
     echo "Adding zplug..."
 
     if [ -d ~/.zplug ]; then
-        log_warning "The ~/.zplug directory already exists. Action skipped. Delete it to overwrite and re-run."
+        log_warning "The ~/.zplug directory already exists. Skipped downloading it."
+        log_info "To overwrite the existing ~/.zplug directory, delete it and re-run the command."
     else
 	    curl -sL --proto-redir -all,https https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
         log_success "Downloaded Zplug."
     fi
     
     if grep -q "source ~/.zplug/init.zsh" ~/.zshrc; then
-        log_warning "Zplug is already sourced in ~/.zshrc. Action skipped. Verify any missing plugins in ~/.zshrc if needed."
+        log_warning "Zplug is already sourced in ~/.zshrc. Skipped adding it."
+        log_info "If needed, verify any missing plugins in your ~/.zshrc file."
     else
         add_zplug_to_zshrc
         log_success "Added the zplug configuration to ~/.zshrc."
@@ -323,9 +326,10 @@ setup_terminal(){
     font_path="$fonts_dir/$font_name"
 
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
-        log_warning "Caskaydia Nerd Font is not needed on WSL. Action skipped."
+        log_warning "Caskaydia Nerd Font is not needed on WSL. Skipped downloading it."
     elif [ -d $font_path ]; then
-        log_warning "The directory $font_path already exists. Action skipped. Delete it to overwrite and re-run."
+        log_warning "The directory $font_path already exists. Skipped downloading it."
+        log_info "To overwrite the existing directory at $font_path, delete it and re-run the command."
     else
         # Download the latest Caskaydia Nerd Font
         curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
@@ -333,14 +337,15 @@ setup_terminal(){
         rm ~/$font_name.zip
         # Update the font cache
         sudo fc-cache -f -v > /dev/null
-        log_success "Added Caskaydia Nerd Font to the system's fonts. Set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'."
+        log_success "Added Caskaydia Nerd Font to the system's fonts."
+        log_info "To use the Caskaydia Nerd Font, set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'."
     fi
 
     echo
     echo "Setting the shell to zsh..."
     
     if [ -n "$SHELL" ] && [ "$SHELL" = "/usr/bin/zsh" ]; then
-        log_warning "Zsh is already set as the default shell. Action skipped."
+        log_warning "Zsh is already set as the default shell. Skipped setting it up."
     else
         # Do not prompt the user again for a password
         sudo chsh -s "$(which zsh)" "$USER"
@@ -355,7 +360,7 @@ setup_neovim(){
     echo "Setting up neovim..."
 
     if is_package_installed "neovim"; then
-        log_warning "Neovim is already installed. Action skipped."
+        log_warning "Neovim is already installed. Skipped installing it."
     else
         local dependencies=()
         case "$DISTRO" in
@@ -380,7 +385,8 @@ setup_neovim(){
             make CMAKE_BUILD_TYPE=Release
             cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
             cd ~/ && rm -rf neovim
-            log_success "Installed neovim (via manual build). To remove it, use: 'sudo apt purge neovim'."
+            log_success "Installed neovim (via manual build)."
+            log_info "To remove the installed neovim, use: 'sudo apt purge neovim'."
             ;;
         esac
     fi
@@ -388,7 +394,8 @@ setup_neovim(){
     local kickstart_path="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
     if [ -d "$kickstart_path" ]; then
-        log_warning "The directory ${kickstart_path} already exists. Action skipped. Delete it to overwrite and re-run. Manual check required"
+        log_warning "The directory ${kickstart_path} already exists. Skipped downloading it."
+        log_info "To overwrite the existing directory at ${kickstart_path}, delete it and re-run the command."
         return 0
     fi
 
@@ -410,7 +417,7 @@ setup_git(){
     git_email="$(git config --get user.email)"
 
     if [[ -n "$git_name" || -n "$git_email" ]]; then
-        log_warning "Skipped setting up Git due to existing values. Manual check required."
+        log_warning "Git's user.name and user.email already exist. Skipped setting it up."
         return 0
     fi
 
@@ -423,9 +430,10 @@ setup_git(){
     if ssh-keygen -t ed25519 -C "$email" -f ~/.ssh/id_ed25519 -N ""; then
         eval "$(ssh-agent -s)"
         ssh-add ~/.ssh/id_ed25519
-        log_success "Configured Git and generated SSH key. To connect to GitHub via SSH, follow the instructions at: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"
+        log_success "Configured Git and generated SSH key."
+        log_info "To connect to GitHub via SSH, follow the instructions at: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account."
     else
-        log_warning "User cancelled SSH key generation for Git setup. Manual check required."
+        log_warning "User cancelled SSH key generation for Git setup."
     fi
 }
 
@@ -435,7 +443,7 @@ install_flatpak_packages() {
     echo "Installing flatpak packages..."
 
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
-        log_warning "There is no need to install Flatpak on WSL. Action skipped."
+        log_warning "There is no need to install Flatpak on WSL. Skipped installing it."
         return 0
     fi
 
@@ -449,7 +457,8 @@ install_flatpak_packages() {
         flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
         
         # Inform the user about the required restart
-        log_success "Installed Flatpak. A restart will be required before installing packages.${NC}"
+        log_success "Installed Flatpak."
+        log_info "To proceed with installing Flatpak packages, a restart will be required."
         SUGGEST_RESTART=true
         return 0
     fi
@@ -476,7 +485,7 @@ install_flatpak_packages() {
         local packages_installed=()
         for package in "${to_install[@]}"; do
             if ! flatpak install -y flathub "$package"; then
-                log_error "Failed to install Flatpak $package. Manual check required."
+                log_error "Failed to install Flatpak $package."
             else
                 packages_installed+=("$package")
             fi
@@ -594,7 +603,8 @@ enable_hw_acceleration_fedora(){
         
         # Check again for profiles
         if ! check_firefox_profiles; then
-            log_error "Failed to create a Firefox profile. Run Firefox at least once before executing this script."
+            log_error "Failed to create a Firefox profile."
+            log_info "Run Firefox at least once before executing this script."
             return 1
         fi
     fi
@@ -631,7 +641,9 @@ enable_hw_acceleration_fedora(){
         set_pref "media.av1.enabled" false
     fi
 
-    log_success "Enabled Firefox's hardware acceleration. You can check the file $profile_file to see the modified flags."
+    log_success "Enabled Firefox hardware acceleration."
+    log_info "You can check the file $profile_file to see the modified flags for Firefox."
+
 }
 
 
@@ -649,7 +661,7 @@ set_governor_to_performance_fedora(){
     governor=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor) 
 
     if [ "$governor" = "performance" ]; then
-        log_warning "The governor mode is already set to 'performance'. No need to create a startup service for it. Action skipped."
+        log_warning "The governor mode is already set to 'performance'. No need to create a startup service for it. Skipped setting it up."
         return 0
     fi
     
@@ -682,7 +694,7 @@ EOF
 )
 
     if [ -s "$script_path" ]; then
-        log_warning "The $script_name already exists in $script_dir. No need to create it. Action skipped."
+        log_warning "The $script_name already exists in $script_dir. Skipped creating it."
         return 0
     fi
 
@@ -691,7 +703,8 @@ EOF
     sudo chmod +x "$script_path"
 
     if [ -s "$service_path" ]; then
-        log_warning "The $service_name already exists in $service_dir. Manual check required. You are advised to run:\nsudo systemctl status $service_name"
+        log_warning "The $service_name already exists in $service_dir. Skipped creating it."
+        log_info "To troubleshoot the status of the service $service_name, run: sudo systemctl status $service_name."
         return 0
     fi
 
@@ -721,7 +734,7 @@ set_yaru_icons_fedora(){
 
     local icon_theme='Yaru-prussiangreen-dark'
     if [[ "$current_icon_theme" == *Yaru* ]]; then
-        log_warning "The $current_icon_theme icons are already enabled. Action skipped."
+        log_warning "The $current_icon_theme icons are already enabled. Skipped setting it up."
         return 0
     fi
 
@@ -767,7 +780,8 @@ disable_ppd_color_change_fedora(){
     GRUB_FILE="/etc/default/grub"
 
     if grep -q "amdgpu.abmlevel" "$GRUB_FILE"; then
-        log_warning "amdgpu.abmlevel already exists in $GRUB_FILE. Verify manually its value and change it to 0 (to disable PPD from modifying colors). Action skipped."
+        log_warning "The setting 'amdgpu.abmlevel' already exists in '$GRUB_FILE'. Skipped modifying it."
+        log_info "Verify the value of 'amdgpu.abmlevel' in '$GRUB_FILE' and change it to 0 to disable automatic brightness management (ABM) and prevent PPD from modifying colors."
         return 0
     fi
 
@@ -807,7 +821,7 @@ ResolveUnicastSingleLabel=yes
 EOF
 )
     if [ -s "$resolved_path" ]; then
-        log_warning "While installing cloudflare warp, it was found that the file $resolved_path had an existing configuration. Action skipped. Manual check required."
+        log_warning "While installing cloudflare warp, it was found that the file $resolved_path had an existing configuration. Skipped creating it."
         return 0
     fi
 
@@ -830,7 +844,8 @@ EOF
     # Register a new session with cloudflare warp and accept terms and conditions
     echo y | sudo warp-cli registration new
     
-    log_success "Cloudflare Warp has been installed. Use 'warp-cli --help' for more information. If you used the script's option 1 or 3 for generating the Zsh config, you can also use the following shortcuts:\n• warpc for connecting\n• warpd for disconnecting\n• warps for status."
+    log_success "Cloudflare Warp has been installed."
+    log_info "Use 'warp-cli --help' for more information.\nIf you used the script's option 1 or 3 for generating the Zsh config, you can also use the following shortcuts:\n• warpc for connecting\n• warpd for disconnecting\n• warps for status."
 }
 
 
@@ -1008,10 +1023,28 @@ main(){
         
         # Check if the log file exists and is not empty
         if [[ -f "$LOG_FILE" && -s "$LOG_FILE" ]]; then
+            new_logs=$(tail -n +$((INITIAL_LINES + 1)) "$LOG_FILE")
+        fi
+        
+        if [[ -n $new_logs ]]; then
             echo -e "\n-------------------------- Log Summary ----------------------------"
-            tail -n +$((INITIAL_LINES + 1)) "$LOG_FILE"
+            # Get new logs starting from the line after INITIAL_LINES
+            new_logs=$(tail -n +$((INITIAL_LINES + 1)) "$LOG_FILE")
+            # Display grouped logs
+            #echo -e "\n--- Success Logs ---"
+            echo "$new_logs" | grep -i "success" && echo 
+
+            #echo -e "\n--- Informational Logs ---"
+            echo "$new_logs" | grep -i "info" && echo 
+
+            #echo -e "\n--- Warning Logs ---"
+            echo "$new_logs" | grep -i "warning" && echo 
+
+            #echo -e "\n--- Error Logs ---"
+            echo "$new_logs" | grep -i "error" && echo 
             echo "--------------------------------------------------------------------"
         fi
+
         if "$SUGGEST_RESTART"; then
             echo -e "Some changes need a system restart to take effect. Please RESTART your system to finish."
         fi
