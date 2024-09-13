@@ -269,7 +269,7 @@ install_packages(){
         fi
     fi
 
-    $install_cmd "${to_install[@]}" "${to_install[@]}"
+    $install_cmd "${to_install[@]}"
 
     # Check which packages were actually installed
     local packages_installed=()
