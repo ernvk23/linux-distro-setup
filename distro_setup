@@ -14,7 +14,7 @@ INFO_COLOR="\e[35m[INFO]\e[0m"
 TIMEOUT=10
 
 ## Global Variables
-LOG_FILE="script_logs.txt"
+LOG_FILE="distro_setup_logs.txt"
 PACKAGE_MANAGER=""
 SUGGEST_RESTART=false
 
