@@ -38,47 +38,39 @@ This script automates the setup process after a fresh installation of Fedoara, D
     - set permanently governor's mode to performance
     - change yaru icons theme color
     - disable PPD color change
+    - setup local network share using samba
     - install cloudflare warp (VPN like) (WARNING!!! breaks gnome camera)
 
 #### Script's code snippet (shown menu)
 ```bash
-echo "--------------------------- Options -------------------------------"
-echo "-------------------------------------------------------------------"
+echo "--------------------------- Setup Options ---------------------------"
 echo "1- Minimal system setup"
-echo "  . install distro packages"
-echo "  . add Caskaydia Nerd Font to system's fonts (manual setup required) (*)"
-echo "  . create a default zsh configuration file (*)"
-echo "  . install zplug as zsh pluggin manager (*)" 
-echo "  . set zsh as the default user shell (*)"
-echo "  . install neovim set it up with kickstart nvim (*)"
-echo "-------------------------------------------------------------------"
-echo "2- Install flatpak packages (*)"
-echo "-------------------------------------------------------------------"
-echo "3- Git setup"
-echo "  . install git (*)"
-echo "  . set git global user and name (*)"
-echo "  . generate a ssh key (further manual actions are required on github) (*)"
-echo "-------------------------------------------------------------------"
-echo "4- Full system setup (options included: 1,2,3)"
-echo "-------------------------------------------------------------------"
-echo "---------------------------- Fedora -------------------------------"
-echo "5- Install additional non-free media codecs to enable h.264 support (*)"
-echo "6- Enable Firefox's hardware acceleration support (*)"
-echo "7- Configure systems's dnf for faster downloads (*)"
-echo "8- Permanent set the governor mode to performance (*)"
-echo "9- Set yaru icon theme (*)"
-echo "10- Disable gnome power-profile-daemon (PPD) color change (AMD-based) (*)"
-echo "-------------------------------------------------------------------"
-echo "------------------ Fedora (unstable features) ---------------------"
-echo "11- Install cloudflare warp (VPN like) (*)"
-echo -e "  . WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
+echo "   • Install optional packages"
+echo "   • Set up Zsh with plugins (syntax highlighting, autosuggestions, etc.)"
+echo "   • Install Caskaydia Nerd Font"
+echo "   • Install and configure Neovim with kickstart"
+echo "   • Set up Git (install, configure, generate SSH key)"
+echo "2- Install Flatpak packages"
+echo "3- Full system setup (includes options 1 and 2)"
+echo "-------------------------- Fedora Options --------------------------"
+echo "4- Enable system's and Firefox hardware acceleration support"
+echo "   • Install non-free media codecs (h.264, etc.)"
+echo "   • Enable system-wide and Firefox's hardware acceleration support"
+echo "5- Disable GNOME power-profile-daemon color change (AMD-based)"
+echo "6- Set Yaru icon theme"
+echo "7- Configure DNF for faster downloads (Proceed if you know what you are doing!)"
+echo "8- Set governor mode to performance permanently (Proceed if you know what you are doing!)"
+echo -e "9- Setup a local network share with samba ($HOME/Share by default)"
+echo "----------------------- Fedora Unstable Options --------------------"
+echo "10- Install Cloudflare WARP (VPN-like service)"
+echo "   WARNING: May cause issues with GNOME camera and PipeWire"
 echo "q- Quit"
-echo "-------------------------------------------------------------------"
-echo "(*) - if not exists/set/configured"
+echo "--------------------------------------------------------------------"
+echo "Note: All options will only be applied if not already set/configured."
 ```
 
 ### Tested Distributions
-- Fedora 40 *Workstation* **(GNOME)**
+- Fedora 40, 41(*Beta*) *Workstation* **(GNOME)**
 - Debian 12 *Bookworm* **(GNOME)**
 - Ubuntu 24.04 *Noble Numbat* **(GNOME)**
 

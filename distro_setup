@@ -806,6 +806,91 @@ disable_ppd_color_change_fedora(){
     fi
 }
 
+setup_samba_share_fedora(){
+    echo
+    echo "Setting up a local network share with samba... "
+
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution: $DISTRO is not Fedora. Skipped setting up a local network share with samba."
+        return 0
+    fi
+
+    # https://docs.fedoraproject.org/en-US/quick-docs/samba/
+    local dependencies=("samba") 
+    install_packages true false "${dependencies[@]}"
+
+
+    # Set a default folder path
+    DEFAULT_FOLDER="/home/$USER/Share"
+
+    # Prompt for the full path of the folder to share and read input
+    while true; do
+        read -p "Enter the full path of the folder to be shared (default: $DEFAULT_FOLDER): " FOLDER_PATH
+        
+        # Remove trailing slash if it exists
+        FOLDER_PATH=${FOLDER_PATH%/}
+
+        # Check if the input is non-empty; if empty, use default
+        if [[ -z "$FOLDER_PATH" ]]; then
+            echo "No folder path entered. Using default: $DEFAULT_FOLDER"
+            FOLDER_PATH="$DEFAULT_FOLDER"
+            break  # Exit the loop
+        elif [[ -n "$FOLDER_PATH" ]]; then
+            break  # Exit the loop if a valid input is provided
+        fi
+    done
+
+    # Extract just the folder name from the full path
+    FOLDER_NAME=$(basename "$FOLDER_PATH")
+    
+    # Check if the folder exists; if not, create it
+    if [ ! -d "$FOLDER_PATH" ]; then
+        mkdir -p "$FOLDER_PATH"
+        log_info "Directory '$FOLDER_PATH' didn't exist. Created it."
+    fi
+
+    sudo systemctl enable smb --now
+    firewall-cmd --get-active-zones
+    sudo firewall-cmd --permanent --zone=FedoraWorkstation --add-service=samba
+    sudo firewall-cmd --reload
+
+    if ! sudo pdbedit -L | grep -q "^$USER:"; then
+        sudo smbpasswd -a "$USER"
+    fi
+
+    if ! sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
+        sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
+    fi
+    sudo restorecon -R $FOLDER_PATH
+
+    local conf_name="smb.conf"
+    local conf_dir="/etc/samba"
+    local conf_path="$conf_dir/$conf_name"
+    local conf_content=$(envsubst <<- EOF
+
+## Added by user $USER on $(date +"%Y-%m-%d")
+[$FOLDER_NAME]
+    comment = Shared folder by $USER
+    path = $FOLDER_PATH
+    public = no
+    guest ok = no
+    browseable = yes
+    writable = no
+    read only = yes
+EOF
+)
+    # Create a timestamped backup
+    timestamp=$(date +"%Y%m%d_%H%M%S")
+    sudo cp "$conf_path" "$conf_dir/smb.conf.bak.$timestamp"
+    log_info "Backup of '$conf_path' created as 'smb.conf.bak.$timestamp'."
+
+    echo "$conf_content" | sudo tee -a "$conf_path" > /dev/null
+
+    sudo systemctl restart smb
+
+    log_success "Set up $FOLDER_PATH to be shared on the local network."
+    log_info "Check out $conf_path to change any options regarding to sharing permissions."
+}
 
 install_cloudflare_warp_fedora(){
     # WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
@@ -954,15 +1039,16 @@ main(){
         echo "6- Set Yaru icon theme"
         echo "7- Configure DNF for faster downloads (Proceed if you know what you are doing!)"
         echo "8- Set governor mode to performance permanently (Proceed if you know what you are doing!)"
+        echo -e "9- Setup a local network share with samba ($HOME/Share by default)"
         echo "----------------------- Fedora Unstable Options --------------------"
-        echo "9- Install Cloudflare WARP (VPN-like service)"
+        echo "10- Install Cloudflare WARP (VPN-like service)"
         echo "   WARNING: May cause issues with GNOME camera and PipeWire"
         echo "q- Quit"
         echo "--------------------------------------------------------------------"
         echo "Note: All options will only be applied if not already set/configured."
 
         flush_input_buffer
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9 or q): " selection
+        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9, 10 or q): " selection
         case "$selection" in
             1)
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
@@ -1021,6 +1107,12 @@ main(){
                 set_governor_to_performance_fedora
                 ;;
             9)
+                if ! ask_user_confirmation "You selected to setup a local network share with samba. Would you like to proceed?"; then
+                    continue
+                fi
+                setup_samba_share_fedora
+                ;;
+            10)
                 if ! ask_user_confirmation "You selected to install cloudflare warp. Would you like to proceed?"; then
                     continue
                 fi
