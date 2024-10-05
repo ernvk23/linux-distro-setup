@@ -824,21 +824,20 @@ setup_samba_share_fedora(){
     DEFAULT_FOLDER="/home/$USER/Share"
 
     # Prompt for the full path of the folder to share and read input
-    while true; do
-        read -p "Enter the full path of the folder to be shared (default: $DEFAULT_FOLDER): " FOLDER_PATH
+    read -p "Enter the full path of the folder to be shared (default: $DEFAULT_FOLDER): " FOLDER_PATH
         
-        # Remove trailing slash if it exists
-        FOLDER_PATH=${FOLDER_PATH%/}
+    # Remove trailing slash if it exists
+    FOLDER_PATH=${FOLDER_PATH%/}
 
-        # Check if the input is non-empty; if empty, use default
-        if [[ -z "$FOLDER_PATH" ]]; then
-            echo "No folder path entered. Using default: $DEFAULT_FOLDER"
-            FOLDER_PATH="$DEFAULT_FOLDER"
-            break  # Exit the loop
-        elif [[ -n "$FOLDER_PATH" ]]; then
-            break  # Exit the loop if a valid input is provided
-        fi
-    done
+    # Check if the input is non-empty; if empty, use default
+    if [[ -z "$FOLDER_PATH" ]]; then
+        echo "No folder path entered. Using default: $DEFAULT_FOLDER"
+        FOLDER_PATH="$DEFAULT_FOLDER"
+    elif [[ "$FOLDER_PATH" != /* ]]; then
+        # Check if the provided path is absolute
+        echo "Provided path is not absolute. Creating folder in home directory."
+        FOLDER_PATH="$HOME/$FOLDER_PATH"
+    fi
 
     # Extract just the folder name from the full path
     FOLDER_NAME=$(basename "$FOLDER_PATH")
@@ -858,9 +857,16 @@ setup_samba_share_fedora(){
         sudo smbpasswd -a "$USER"
     fi
 
-    if ! sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
-        sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
+    
+    if sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
+        log_info "SELinux context already exists for $FOLDER_PATH. No changes made to smb.conf."
+        return 0
     fi
+
+    sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
+    # To remove use
+    #sudo semanage fcontext -d "$FOLDER_PATH(/.*)?"
+
     sudo restorecon -R $FOLDER_PATH
 
     local conf_name="smb.conf"
@@ -889,7 +895,8 @@ EOF
     sudo systemctl restart smb
 
     log_success "Set up $FOLDER_PATH to be shared on the local network."
-    log_info "Check out $conf_path to change any options regarding to sharing permissions."
+    log_info "To review the folders set in SELinux Policy Management, use: 'sudo semanage fcontext --list --locallist --noheading'"
+    log_info "To change any sharing permissions modify the $conf_path accordingly. Use 'testparm' after modying the $conf_path to check its integrity."
 }
 
 install_cloudflare_warp_fedora(){
