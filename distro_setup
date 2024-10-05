@@ -821,7 +821,7 @@ setup_samba_share_fedora(){
 
 
     # Set a default folder path
-    DEFAULT_FOLDER="/home/$USER/Share"
+    DEFAULT_FOLDER="/home/$USER/Shared"
 
     # Prompt for the full path of the folder to share and read input
     read -p "Enter the full path of the folder to be shared (default: $DEFAULT_FOLDER): " FOLDER_PATH
@@ -1046,7 +1046,7 @@ main(){
         echo "6- Set Yaru icon theme"
         echo "7- Configure DNF for faster downloads (Proceed if you know what you are doing!)"
         echo "8- Set governor mode to performance permanently (Proceed if you know what you are doing!)"
-        echo -e "9- Setup a local network share with samba ($HOME/Share by default)"
+        echo -e "9- Setup a local network share with samba ($HOME/Shared by default)"
         echo "----------------------- Fedora Unstable Options --------------------"
         echo "10- Install Cloudflare WARP (VPN-like service)"
         echo "   WARNING: May cause issues with GNOME camera and PipeWire"
