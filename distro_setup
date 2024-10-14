@@ -971,7 +971,7 @@ ensure_running_conditions(){
 
     case "$DISTRO" in
     "fedora")
-        ! dnf needs-restarting -r &> /dev/null
+        ! dnf needs-restarting -r
         ;;
     "debian" | "ubuntu")
         [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
