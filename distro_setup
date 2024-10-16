@@ -16,7 +16,7 @@ TIMEOUT=10
 ## Global Variables
 LOG_FILE="distro_setup_logs.txt"
 PACKAGE_MANAGER=""
-SUGGEST_RESTART=false
+suggest_restart=false
 
 ## Determine the Distribution
 DISTRO=$(. /etc/os-release && echo "$ID")
@@ -391,7 +391,7 @@ setup_terminal(){
     else
         # Do not prompt the user again for a password
         sudo chsh -s "$(which zsh)" "$USER"
-        SUGGEST_RESTART=true
+        suggest_restart=true
         log_success "Changed the default shell to ZSH for the current user."
     fi
 }
@@ -503,7 +503,7 @@ install_flatpak_packages() {
         # Inform the user about the required restart
         log_success "Installed Flatpak."
         log_info "To proceed with installing Flatpak packages, a restart will be required."
-        SUGGEST_RESTART=true
+        suggest_restart=true
         return 0
     fi
 
@@ -530,7 +530,7 @@ set_faster_downloads_fedora(){
     fi
 
     echo -e "max_parallel_downloads=10\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
-    SUGGEST_RESTART=true
+    suggest_restart=true
 
     log_success "Configured DNF for faster downloads."
 }
@@ -728,7 +728,7 @@ EOF
     sudo systemctl daemon-reload > /dev/null
     sudo systemctl enable "$service_name" > /dev/null
     sudo systemctl start "$service_name" > /dev/null
-    SUGGEST_RESTART=true
+    suggest_restart=true
 
     log_success "Set governor mode to performance."
 }
@@ -801,7 +801,7 @@ disable_ppd_color_change_fedora(){
     sudo sed -i '/GRUB_CMDLINE_LINUX/s/"\(.*\)"/"\1 amdgpu.abmlevel=0"/' "$GRUB_FILE"
     if [ $? -eq 0 ]; then
         sudo grub2-mkconfig -o /boot/grub2/grub.cfg
-        SUGGEST_RESTART=true
+        suggest_restart=true
         log_success "Disabled gnome power-profile-daemon (PPD) color change."
     fi
 }
@@ -1159,7 +1159,7 @@ main(){
             echo "--------------------------------------------------------------------"
         fi
 
-        if "$SUGGEST_RESTART"; then
+        if "$suggest_restart"; then
             echo -e "Some changes need a system restart to take effect. Please RESTART your system to finish."
         fi
         flush_input_buffer
