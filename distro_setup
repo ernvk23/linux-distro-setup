@@ -819,6 +819,23 @@ setup_samba_share_fedora(){
     local dependencies=("samba") 
     install_packages true false "${dependencies[@]}"
 
+    sudo systemctl enable smb --now
+    firewall-cmd --get-active-zones
+    sudo firewall-cmd --permanent --zone=FedoraWorkstation --add-service=samba
+    sudo firewall-cmd --reload
+
+    if ! sudo pdbedit -L | grep -q "^$USER:"; then
+        sudo smbpasswd -a "$USER"
+    fi
+
+    # Check if samba_share_fusefs is enabled and prompt the user if it is not
+    if ! getsebool samba_share_fusefs | grep -q 'on'; then
+        read -p "Would you like to allow access to NTFS filesystems? (y/n): " USER_CONFIRM  
+        if [[ "$USER_CONFIRM" == "y" ]]; then
+            sudo setsebool -P samba_share_fusefs 1
+            log_info "Samba sharing enabled for NTFS filesystems."
+        fi
+    fi
 
     # Set a default folder path
     DEFAULT_FOLDER="/home/$USER/Shared"
@@ -852,29 +869,6 @@ setup_samba_share_fedora(){
         log_info "Directory '$FOLDER_PATH' didn't exist. Created it."
     fi
 
-    sudo systemctl enable smb --now
-    firewall-cmd --get-active-zones
-    sudo firewall-cmd --permanent --zone=FedoraWorkstation --add-service=samba
-    sudo firewall-cmd --reload
-
-    if ! sudo pdbedit -L | grep -q "^$USER:"; then
-        sudo smbpasswd -a "$USER"
-    fi
-
-    # Check if the folder is on an NTFS filesystem
-    FILESYSTEM_TYPE=$(df -T "$FOLDER_PATH" | awk 'NR==2 {print $2}')
-    
-    if [[ "$FILESYSTEM_TYPE" == "ntfs" ]]; then
-        read -p "The selected folder is on an NTFS filesystem. Do you want to enable Samba sharing for this folder? (y/n): " USER_CONFIRM
-        
-        if [[ "$USER_CONFIRM" == "y" ]]; then
-            sudo setsebool -P samba_share_fusefs 1
-            log_info "Enabled samba_share_fusefs boolean."
-        else
-            log_info "Samba sharing will not be enabled for this NTFS folder."
-        fi
-    fi
-    
     if sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
         log_info "SELinux context already exists for $FOLDER_PATH. No changes made to smb.conf."
         return 0
