@@ -826,6 +826,10 @@ setup_samba_share_fedora(){
     # Prompt for the full path of the folder to share and read input
     read -p "Enter the full path of the folder to be shared (default: $DEFAULT_FOLDER): " FOLDER_PATH
         
+    # Remove surrounding quotes if they exist
+    FOLDER_PATH=${FOLDER_PATH#\"}  # Remove leading quote
+    FOLDER_PATH=${FOLDER_PATH%\"}   # Remove trailing quote
+
     # Remove trailing slash if it exists
     FOLDER_PATH=${FOLDER_PATH%/}
 
@@ -857,6 +861,19 @@ setup_samba_share_fedora(){
         sudo smbpasswd -a "$USER"
     fi
 
+    # Check if the folder is on an NTFS filesystem
+    FILESYSTEM_TYPE=$(df -T "$FOLDER_PATH" | awk 'NR==2 {print $2}')
+    
+    if [[ "$FILESYSTEM_TYPE" == "ntfs" ]]; then
+        read -p "The selected folder is on an NTFS filesystem. Do you want to enable Samba sharing for this folder? (y/n): " USER_CONFIRM
+        
+        if [[ "$USER_CONFIRM" == "y" ]]; then
+            sudo setsebool -P samba_share_fusefs 1
+            log_info "Enabled samba_share_fusefs boolean."
+        else
+            log_info "Samba sharing will not be enabled for this NTFS folder."
+        fi
+    fi
     
     if sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
         log_info "SELinux context already exists for $FOLDER_PATH. No changes made to smb.conf."
@@ -883,6 +900,14 @@ setup_samba_share_fedora(){
     browseable = yes
     writable = no
     read only = yes
+   
+    ## Uncomment to allow following links
+    #wide links = yes
+    #follow symlinks = yes
+    
+    ## (cut the commands below and add them to the [global] one)
+    #allow insecure wide links = yes
+    #unix extensions = no
 EOF
 )
     # Create a timestamped backup
