@@ -865,27 +865,6 @@ setup_samba_share_fedora(){
         log_info "Directory '$FOLDER_PATH' didn't exist. Created it."
     fi
 
-   # Check for symbolic links in the target folder
-    if ls -l "$FOLDER_PATH" | grep -q '^l'; then
-        for link in "$FOLDER_PATH"/*; do
-            if [[ -L "$link" ]]; then
-                TARGET=$(readlink -f "$link")
-                FILESYSTEM_TYPE=$(df -T "$TARGET" | awk 'NR==2 {print $2}')
-                if [[ "$FILESYSTEM_TYPE" == "ntfs" ]]; then
-                    sudo setsebool -P samba_share_fusefs 1
-                    log_info "Detected NTFS link: $link -> $TARGET. Enabled samba access to NTFS filesystems."
-                    break  # Exit after enabling for one NTFS link found
-                fi
-            fi
-        done
-    fi
- 
-    sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
-    # To remove use
-    #sudo semanage fcontext -d "$FOLDER_PATH(/.*)?"
-
-    sudo restorecon -R $FOLDER_PATH
-
     local conf_name="smb.conf"
     local conf_dir="/etc/samba"
     local conf_path="$conf_dir/$conf_name"
@@ -910,6 +889,32 @@ setup_samba_share_fedora(){
     #unix extensions = no
 EOF
 )
+   
+   # Check for symbolic links in the target folder
+    if ls -l "$FOLDER_PATH" | grep -q '^l'; then
+        for link in "$FOLDER_PATH"/*; do
+            if [[ -L "$link" ]]; then
+                TARGET=$(readlink -f "$link")
+                FILESYSTEM_TYPE=$(df -T "$TARGET" | awk 'NR==2 {print $2}')
+                # Check if filesystem type is NTFS or fuseblk
+                if [[ "$FILESYSTEM_TYPE" == "ntfs" || "$FILESYSTEM_TYPE" == "fuseblk" ]]; then
+                    if ! getsebool samba_share_fusefs | grep -q 'on'; then
+                        sudo setsebool -P samba_share_fusefs 1
+                        log_info "Detected NTFS link: $link -> $TARGET. Enabled samba access to NTFS filesystems."
+                        break  # Exit after enabling for one NTFS link found
+                    fi
+                fi
+            fi
+        done
+        log_warning "The directory $FOLDER_PATH had existing links, to allow accessing them, uncomment the corresponding lines in $conf_path."
+    fi
+ 
+    sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
+    # To remove use
+    #sudo semanage fcontext -d "$FOLDER_PATH(/.*)?"
+
+    sudo restorecon -R $FOLDER_PATH
+
     # Create a timestamped backup
     timestamp=$(date +"%Y%m%d_%H%M%S")
     sudo cp "$conf_path" "$conf_dir/smb.conf.bak.$timestamp"
