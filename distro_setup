@@ -828,15 +828,6 @@ setup_samba_share_fedora(){
         sudo smbpasswd -a "$USER"
     fi
 
-    # Check if samba_share_fusefs is enabled and prompt the user if it is not
-    if ! getsebool samba_share_fusefs | grep -q 'on'; then
-        read -p "Would you like to allow access to NTFS filesystems? (y/n): " USER_CONFIRM  
-        if [[ "$USER_CONFIRM" == "y" ]]; then
-            sudo setsebool -P samba_share_fusefs 1
-            log_info "Samba sharing enabled for NTFS filesystems."
-        fi
-    fi
-
     # Set a default folder path
     DEFAULT_FOLDER="/home/$USER/Shared"
 
@@ -863,17 +854,32 @@ setup_samba_share_fedora(){
     # Extract just the folder name from the full path
     FOLDER_NAME=$(basename "$FOLDER_PATH")
     
+    if sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
+        log_info "SELinux context already exists for $FOLDER_PATH. No changes made to smb.conf."
+        return 0
+    fi
+    
     # Check if the folder exists; if not, create it
     if [ ! -d "$FOLDER_PATH" ]; then
         mkdir -p "$FOLDER_PATH"
         log_info "Directory '$FOLDER_PATH' didn't exist. Created it."
     fi
 
-    if sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
-        log_info "SELinux context already exists for $FOLDER_PATH. No changes made to smb.conf."
-        return 0
+   # Check for symbolic links in the target folder
+    if ls -l "$FOLDER_PATH" | grep -q '^l'; then
+        for link in "$FOLDER_PATH"/*; do
+            if [[ -L "$link" ]]; then
+                TARGET=$(readlink -f "$link")
+                FILESYSTEM_TYPE=$(df -T "$TARGET" | awk 'NR==2 {print $2}')
+                if [[ "$FILESYSTEM_TYPE" == "ntfs" ]]; then
+                    sudo setsebool -P samba_share_fusefs 1
+                    log_info "Detected NTFS link: $link -> $TARGET. Enabled samba access to NTFS filesystems."
+                    break  # Exit after enabling for one NTFS link found
+                fi
+            fi
+        done
     fi
-
+ 
     sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
     # To remove use
     #sudo semanage fcontext -d "$FOLDER_PATH(/.*)?"
