@@ -827,6 +827,29 @@ setup_samba_share_fedora(){
     if ! sudo pdbedit -L | grep -q "^$USER:"; then
         sudo smbpasswd -a "$USER"
     fi
+    
+    local conf_path="/etc/samba/smb.conf"
+
+    # Check for following links in [global] settings
+    if ! grep -q "allow insecure wide links" "$conf_path"; then
+        read -p "Do you want to allow insecure wide links in [global]? (y/n): " allow_insecure
+        if [[ "$allow_insecure" =~ ^[Yy]$ ]]; then
+            sudo sed -i '/^\[global\]/a \    allow insecure wide links = yes' "$conf_path"
+            sudo sed -i '/^\[global\]/a \    unix extensions = no' "$conf_path"
+            log_warning "Enabled global samba access to insecure wide links."
+        fi
+    fi
+
+    # Check for NTFS access
+    if ! getsebool samba_share_fusefs | grep -q 'on'; then
+        read -p "Do you want to allow samba to access to NTFS filesystems? (y/n): " allow_ntfs
+        if [[ "$allow_ntfs" =~ ^[Yy]$ ]]; then
+            if ! getsebool samba_share_fusefs | grep -q 'on'; then
+                sudo setsebool -P samba_share_fusefs 1
+                log_warning "Enabled samba access to NTFS filesystems."
+            fi
+        fi
+    fi
 
     # Set a default folder path
     DEFAULT_FOLDER="/home/$USER/Shared"
@@ -834,40 +857,43 @@ setup_samba_share_fedora(){
     # Prompt for the full path of the folder to share and read input
     read -p "Enter the full path of the folder to be shared (default: $DEFAULT_FOLDER): " FOLDER_PATH
         
-    # Remove surrounding quotes if they exist
-    FOLDER_PATH=${FOLDER_PATH#\"}  # Remove leading quote
-    FOLDER_PATH=${FOLDER_PATH%\"}   # Remove trailing quote
-
-    # Remove trailing slash if it exists
+    # Remove surrounding quotes and trailing slashes
+    FOLDER_PATH=${FOLDER_PATH#\"}
+    FOLDER_PATH=${FOLDER_PATH%\"}
     FOLDER_PATH=${FOLDER_PATH%/}
 
-    # Check if the input is non-empty; if empty, use default
     if [[ -z "$FOLDER_PATH" ]]; then
         echo "No folder path entered. Using default: $DEFAULT_FOLDER"
         FOLDER_PATH="$DEFAULT_FOLDER"
     elif [[ "$FOLDER_PATH" != /* ]]; then
-        # Check if the provided path is absolute
         echo "Provided path is not absolute. Creating folder in home directory."
         FOLDER_PATH="$HOME/$FOLDER_PATH"
     fi
 
-    # Extract just the folder name from the full path
     FOLDER_NAME=$(basename "$FOLDER_PATH")
-    
-    if sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
-        log_info "SELinux context already exists for $FOLDER_PATH. No changes made to smb.conf."
-        return 0
-    fi
     
     # Check if the folder exists; if not, create it
     if [ ! -d "$FOLDER_PATH" ]; then
         mkdir -p "$FOLDER_PATH"
         log_info "Directory '$FOLDER_PATH' didn't exist. Created it."
     fi
+    
+    if sudo semanage fcontext --list --locallist --noheading | grep -q "$FOLDER_PATH(/.*)?"; then
+        log_info "SELinux context already exists for $FOLDER_PATH. No changes made to smb.conf."
+        return 0
+    fi
 
-    local conf_name="smb.conf"
-    local conf_dir="/etc/samba"
-    local conf_path="$conf_dir/$conf_name"
+     # Prompt for following links
+    read -p "Do you want to allow following symbolic links in this share? (y/n): " follow_links
+    local follow_symlinks=""
+    if [[ "$follow_links" =~ ^[Yy]$ ]]; then
+        follow_symlinks="
+    wide links = yes
+    follow symlinks = yes
+"
+        log_warning "Access to symbolic links was granted for $FOLDER_PATH."
+    fi
+
     local conf_content=$(envsubst <<- EOF
 
 ## Added by user $USER on $(date +"%Y-%m-%d")
@@ -879,36 +905,10 @@ setup_samba_share_fedora(){
     browseable = yes
     writable = no
     read only = yes
-   
-    ## Uncomment to allow following links
-    #wide links = yes
-    #follow symlinks = yes
-    
-    ## (cut the commands below and add them to the [global] one)
-    #allow insecure wide links = yes
-    #unix extensions = no
+$follow_symlinks
 EOF
 )
-   
-   # Check for symbolic links in the target folder
-    if ls -l "$FOLDER_PATH" | grep -q '^l'; then
-        for link in "$FOLDER_PATH"/*; do
-            if [[ -L "$link" ]]; then
-                TARGET=$(readlink -f "$link")
-                FILESYSTEM_TYPE=$(df -T "$TARGET" | awk 'NR==2 {print $2}')
-                # Check if filesystem type is NTFS or fuseblk
-                if [[ "$FILESYSTEM_TYPE" == "ntfs" || "$FILESYSTEM_TYPE" == "fuseblk" ]]; then
-                    if ! getsebool samba_share_fusefs | grep -q 'on'; then
-                        sudo setsebool -P samba_share_fusefs 1
-                        log_info "Detected NTFS link: $link -> $TARGET. Enabled samba access to NTFS filesystems."
-                        break  # Exit after enabling for one NTFS link found
-                    fi
-                fi
-            fi
-        done
-        log_warning "The directory $FOLDER_PATH had existing links, to allow accessing them, uncomment the corresponding lines in $conf_path."
-    fi
- 
+
     sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
     # To remove use
     #sudo semanage fcontext -d "$FOLDER_PATH(/.*)?"
@@ -916,9 +916,11 @@ EOF
     sudo restorecon -R $FOLDER_PATH
 
     # Create a timestamped backup
+    BACKUP_DIR="/etc/samba/backups"
+    sudo mkdir -p "$BACKUP_DIR"
     timestamp=$(date +"%Y%m%d_%H%M%S")
-    sudo cp "$conf_path" "$conf_dir/smb.conf.bak.$timestamp"
-    log_info "Backup of '$conf_path' created as 'smb.conf.bak.$timestamp'."
+    sudo cp "$conf_path" "$BACKUP_DIR/smb.conf.bak.$timestamp"
+    log_info "Backup of '$conf_path' created as '$BACKUP_DIR/smb.conf.bak.$timestamp."
 
     echo "$conf_content" | sudo tee -a "$conf_path" > /dev/null
 
