@@ -1001,19 +1001,19 @@ ensure_running_conditions(){
         exit 1
     fi
 
-    case "$DISTRO" in
-    "fedora")
-        ! dnf needs-restarting -r
-        ;;
-    "debian" | "ubuntu")
-        [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
-        ;;
-    esac
-    if [[ "$?" -eq 0 ]]; then
-        log_error "Your system has pending updates. Restart it and re-run the script."
-        echo -e "$ERROR Your system has pending updates. Please restart it and re-run the script. Exiting..."
-        exit 1
-    fi
+    # case "$DISTRO" in
+    # "fedora")
+    #     ! dnf needs-restarting -r
+    #     ;;
+    # "debian" | "ubuntu")
+    #     [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
+    #     ;;
+    # esac
+    # if [[ "$?" -eq 0 ]]; then
+    #     log_error "Your system has pending updates. Restart it and re-run the script."
+    #     echo -e "$ERROR Your system has pending updates. Please restart it and re-run the script. Exiting..."
+    #     exit 1
+    # fi
 
     # Select package manager and update its cache
     echo "Updating system's package manager cache..."
