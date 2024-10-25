@@ -61,7 +61,6 @@ FLATPAK_PACKAGES=(
     "org.videolan.VLC"
     "com.github.unrud.VideoDownloader" 
     "com.rafaelmardojai.Blanket"
-    #"com.mattjakeman.ExtensionManager"
     #"com.opera.Opera"
     #"md.obsidian.Obsidian"
     #"app.drey.Warp"
@@ -362,26 +361,35 @@ setup_terminal(){
     fi
 
     echo
-    echo "Adding Caskaydia Nerd Font to the system fonts..."
+    echo "Adding Nerd Fonts to the system fonts..."
     
-    font_name="CascadiaMono"
+    if [[ $DISTRO == "fedora" ]]; then
+        font_name="cascadia-mono-nf-fonts"
+    else
+        font_name="caskaydia-mono-nf-fonts"
+    fi
     fonts_dir="/usr/share/fonts"
     font_path="$fonts_dir/$font_name"
 
     if [[ -n "$WSL_DISTRO_NAME" ]]; then
-        log_warning "Caskaydia Nerd Font is not needed on WSL. Skipped downloading it."
+        log_warning "$font_name is not needed on WSL. Skipped downloading it."
     elif [ -d $font_path ]; then
         log_warning "The directory $font_path already exists. Skipped downloading it."
         log_info "To overwrite the existing directory at $font_path, delete it and re-run the command."
     else
-        # Download the latest Caskaydia Nerd Font
-        curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
-        sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
-        rm ~/$font_name.zip
+        if [[ "$DISTRO" == "fedora" ]]
+            sudo dnf install cascadia-mono-nf-fonts -y
+            sudo fc-cache -f -v > /dev/null
+        else
+            # Download the latest Caskaydia Nerd Font
+            curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
+            sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
+            rm ~/$font_name.zip
+        fi
         # Update the font cache
         sudo fc-cache -f -v > /dev/null
-        log_success "Added Caskaydia Nerd Font to the system's fonts."
-        log_info "To use the Caskaydia Nerd Font, set it in your terminal's Preferences under 'Custom Font' as 'CaskaydiaMono Nerd Font Mono'."
+        log_success "Added $font_name to the system's fonts."
+        log_info "To use $font_name, set it in your terminal's Preferences under 'Custom Font'."
     fi
 
     echo
