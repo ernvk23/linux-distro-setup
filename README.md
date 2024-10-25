@@ -1,6 +1,6 @@
 # Linux distro setup
 
-This script automates the setup process after a fresh installation of Fedoara, Debian and Ubuntu Linux distributions. It installs essential packages, configures the terminal, development tools, and various desktop applications.
+This script automates the setup process after a fresh installation of Fedora, Debian and Ubuntu Linux distributions. It installs essential packages, configures the terminal, development tools, and various desktop applications.
 
 ## Installation
 
