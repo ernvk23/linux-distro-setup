@@ -27,6 +27,7 @@ FEDORA_PACKAGES=(
     "nvtop"
     "powertop"
     "gnome-tweaks"
+    "gnome-extensions-app"
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-pomodoro"
@@ -53,17 +54,17 @@ DEBIAN_NON_WSL_PACKAGES=(
 )
 
 FLATPAK_PACKAGES=(
-    "com.mattjakeman.ExtensionManager"
     "com.github.tchx84.Flatseal"
     "io.github.peazip.PeaZip"
     "org.qbittorrent.qBittorrent"
     "com.github.johnfactotum.Foliate"
-    "app.drey.Warp"
     "org.videolan.VLC"
     "com.github.unrud.VideoDownloader" 
-    "com.opera.Opera"
-    "md.obsidian.Obsidian"
     "com.rafaelmardojai.Blanket"
+    #"com.mattjakeman.ExtensionManager"
+    #"com.opera.Opera"
+    #"md.obsidian.Obsidian"
+    #"app.drey.Warp"
 )
 
 
