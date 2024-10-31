@@ -377,9 +377,8 @@ setup_terminal(){
         log_warning "The directory $font_path already exists. Skipped downloading it."
         log_info "To overwrite the existing directory at $font_path, delete it and re-run the command."
     else
-        if [[ "$DISTRO" == "fedora" ]]
+        if [[ "$DISTRO" == "fedora" ]]; then
             sudo dnf install cascadia-mono-nf-fonts -y
-            sudo fc-cache -f -v > /dev/null
         else
             # Download the latest Caskaydia Nerd Font
             curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
