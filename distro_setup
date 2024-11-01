@@ -23,14 +23,13 @@ DISTRO=$(. /etc/os-release && echo "$ID")
 
 FEDORA_PACKAGES=(
     "python3-pip"
+    "golang"
     "btop"
     "nvtop"
     "powertop"
     "gnome-tweaks"
-    "gnome-extensions-app"
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
-    "gnome-pomodoro"
     "gnome-shell-extension-caffeine"
 )
 
@@ -60,6 +59,7 @@ FLATPAK_PACKAGES=(
     "com.github.johnfactotum.Foliate"
     "org.videolan.VLC"
     "com.github.unrud.VideoDownloader" 
+    "com.mattjakeman.ExtensionManager"
     "com.rafaelmardojai.Blanket"
     #"com.opera.Opera"
     #"md.obsidian.Obsidian"
@@ -1082,10 +1082,10 @@ main(){
         echo "4- Enable system's and Firefox hardware acceleration support"
         echo "   • Install non-free media codecs (h.264, etc.)"
         echo "   • Enable system-wide and Firefox's hardware acceleration support"
-        echo "5- Disable GNOME power-profile-daemon color change (AMD-based)"
+        echo "5- Disable GNOME power-profile-daemon color change (AMD-based; not recommended in Fedora 41)"
         echo "6- Set Yaru icon theme"
-        echo "7- Configure DNF for faster downloads (Proceed if you know what you are doing!)"
-        echo "8- Set governor mode to performance permanently (Proceed if you know what you are doing!)"
+        echo "7- Configure DNF for faster downloads (Not recommended in Fedora 41; proceed if you know what you are doing!)"
+        echo "8- Set governor mode to performance permanently (Not recommended in Fedora 41; proceed if you know what you are doing!)"
         echo -e "9- Setup a local network share with samba ($HOME/Shared by default)"
         echo "----------------------- Fedora Unstable Options --------------------"
         echo "10- Install Cloudflare WARP (VPN-like service)"
