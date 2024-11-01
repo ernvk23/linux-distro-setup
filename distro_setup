@@ -131,7 +131,7 @@ is_flatpak_package_available() {
 
 flush_input_buffer(){
     # To avoid any pressed key before prompting anything to the user
-    while read -t 0.1 -n 1; do : ; done
+    while read -t 0.2 -n 1; do : ; done
 }
 
 # Function to populate the .zshrc file
@@ -840,16 +840,17 @@ setup_samba_share_fedora(){
 
     # Check for following links in [global] settings
     if ! grep -q "allow insecure wide links" "$conf_path"; then
+        flush_input_buffer
         read -p "Do you want to allow insecure wide links in [global]? (y/n): " allow_insecure
         if [[ "$allow_insecure" =~ ^[Yy]$ ]]; then
-            sudo sed -i '/^\[global\]/a \    allow insecure wide links = yes' "$conf_path"
-            sudo sed -i '/^\[global\]/a \    unix extensions = no' "$conf_path"
+            sudo sed -i '/^\[global\]/a \t\tallow insecure wide links = yes' "$conf_path"
             log_warning "Enabled global samba access to insecure wide links."
         fi
     fi
 
     # Check for NTFS access
     if ! getsebool samba_share_fusefs | grep -q 'on'; then
+        flush_input_buffer
         read -p "Do you want to allow samba to access to NTFS filesystems? (y/n): " allow_ntfs
         if [[ "$allow_ntfs" =~ ^[Yy]$ ]]; then
             if ! getsebool samba_share_fusefs | grep -q 'on'; then
@@ -863,6 +864,7 @@ setup_samba_share_fedora(){
     DEFAULT_FOLDER="/home/$USER/Shared"
 
     # Prompt for the full path of the folder to share and read input
+    flush_input_buffer
     read -p "Enter the full path of the folder to be shared (default: $DEFAULT_FOLDER): " FOLDER_PATH
         
     # Remove surrounding quotes and trailing slashes
@@ -891,14 +893,22 @@ setup_samba_share_fedora(){
         return 0
     fi
 
-     # Prompt for following links
-    read -p "Do you want to allow following symbolic links in this share? (y/n): " follow_links
+
+    # Prompt for reading/writing permissions
+    flush_input_buffer
+    read -p "Do you want to allow writting permissions on this share? (y/n): " allow_writes
+    local read_only=""
+    if [[ "$allow_writes" =~ ^[Yy]$ ]]; then
+        read_only="\n\tread only = no"
+        log_warning "Writting permissions were granted for $FOLDER_PATH."
+    fi
+    
+    # Prompt for following links
+    flush_input_buffer
+    read -p "Do you want to allow following symbolic links on this share? (y/n): " follow_links
     local follow_symlinks=""
     if [[ "$follow_links" =~ ^[Yy]$ ]]; then
-        follow_symlinks="
-    wide links = yes
-    follow symlinks = yes
-"
+        follow_symlinks="\n\twide links = yes"
         log_warning "Access to symbolic links was granted for $FOLDER_PATH."
     fi
 
@@ -906,16 +916,21 @@ setup_samba_share_fedora(){
 
 ## Added by user $USER on $(date +"%Y-%m-%d")
 [$FOLDER_NAME]
-    comment = Shared folder by $USER
-    path = $FOLDER_PATH
-    public = no
-    guest ok = no
-    browseable = yes
-    writable = no
-    read only = yes
-$follow_symlinks
+\tcomment = Shared folder by $USER
+\tpath = $FOLDER_PATH
+\tpublic = no
+\tguest ok = no
+\tbrowseable = yes
 EOF
 )
+
+    if [ -n "$read_only" ]; then
+        conf_content+="$read_only"
+    fi
+
+    if [ -n "$follow_symlinks" ]; then
+        conf_content+="$follow_symlinks"
+    fi
 
     sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
     # To remove use
@@ -930,7 +945,7 @@ EOF
     sudo cp "$conf_path" "$BACKUP_DIR/smb.conf.bak.$timestamp"
     log_info "Backup of '$conf_path' created as '$BACKUP_DIR/smb.conf.bak.$timestamp."
 
-    echo "$conf_content" | sudo tee -a "$conf_path" > /dev/null
+    echo -e "$conf_content" | sudo tee -a "$conf_path" > /dev/null
 
     sudo systemctl restart smb
 
@@ -1082,10 +1097,10 @@ main(){
         echo "4- Enable system's and Firefox hardware acceleration support"
         echo "   • Install non-free media codecs (h.264, etc.)"
         echo "   • Enable system-wide and Firefox's hardware acceleration support"
-        echo "5- Disable GNOME power-profile-daemon color change (AMD-based; not recommended in Fedora 41)"
+        echo "5- Disable GNOME power-profile-daemon color change (AMD-based; not recommended on Fedora 41)"
         echo "6- Set Yaru icon theme"
-        echo "7- Configure DNF for faster downloads (Not recommended in Fedora 41; proceed if you know what you are doing!)"
-        echo "8- Set governor mode to performance permanently (Not recommended in Fedora 41; proceed if you know what you are doing!)"
+        echo "7- Configure DNF for faster downloads (Not recommended on Fedora 41; proceed if you know what you are doing!)"
+        echo "8- Set governor mode to performance permanently (Not recommended on Fedora 41; proceed if you know what you are doing!)"
         echo -e "9- Setup a local network share with samba ($HOME/Shared by default)"
         echo "----------------------- Fedora Unstable Options --------------------"
         echo "10- Install Cloudflare WARP (VPN-like service)"
