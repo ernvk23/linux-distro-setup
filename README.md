@@ -56,10 +56,10 @@ echo "-------------------------- Fedora Options --------------------------"
 echo "4- Enable system's and Firefox hardware acceleration support"
 echo "   • Install non-free media codecs (h.264, etc.)"
 echo "   • Enable system-wide and Firefox's hardware acceleration support"
-echo "5- Disable GNOME power-profile-daemon color change (AMD-based)"
+echo "5- Disable GNOME power-profile-daemon color change (AMD-based; not recommended on Fedora 41)"
 echo "6- Set Yaru icon theme"
-echo "7- Configure DNF for faster downloads (Proceed if you know what you are doing!)"
-echo "8- Set governor mode to performance permanently (Proceed if you know what you are doing!)"
+echo "7- Configure DNF for faster downloads (Not recommended on Fedora 41; proceed if you know what you are doing!)"
+echo "8- Set governor mode to performance permanently (Not recommended on Fedora 41; proceed if you know what you are doing!)"
 echo -e "9- Setup a local network share with samba ($HOME/Shared by default)"
 echo "----------------------- Fedora Unstable Options --------------------"
 echo "10- Install Cloudflare WARP (VPN-like service)"
@@ -70,7 +70,7 @@ echo "Note: All options will only be applied if not already set/configured."
 ```
 
 ### Tested Distributions
-- Fedora 40, 41(*Beta*) *Workstation* **(GNOME)**
+- Fedora 40, 41 *Workstation* **(GNOME)**
 - Debian 12 *Bookworm* **(GNOME)**
 - Ubuntu 24.04 *Noble Numbat* **(GNOME)**
 

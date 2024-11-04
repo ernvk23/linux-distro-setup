@@ -843,7 +843,7 @@ setup_samba_share_fedora(){
         flush_input_buffer
         read -p "Do you want to allow insecure wide links in [global]? (y/n): " allow_insecure
         if [[ "$allow_insecure" =~ ^[Yy]$ ]]; then
-            sudo sed -i '/^\[global\]/a \t\tallow insecure wide links = yes' "$conf_path"
+            sudo sed -i "/^\[global\]/a \\\tallow insecure wide links = yes" "$conf_path"
             log_warning "Enabled global samba access to insecure wide links."
         fi
     fi
@@ -897,18 +897,18 @@ setup_samba_share_fedora(){
     # Prompt for reading/writing permissions
     flush_input_buffer
     read -p "Do you want to allow writting permissions on this share? (y/n): " allow_writes
-    local read_only=""
+    local read_only="\tread only = yes"
     if [[ "$allow_writes" =~ ^[Yy]$ ]]; then
-        read_only="\n\tread only = no"
+        read_only="\tread only = no"
         log_warning "Writting permissions were granted for $FOLDER_PATH."
     fi
     
     # Prompt for following links
     flush_input_buffer
     read -p "Do you want to allow following symbolic links on this share? (y/n): " follow_links
-    local follow_symlinks=""
+    local follow_symlinks="\twide links = no"
     if [[ "$follow_links" =~ ^[Yy]$ ]]; then
-        follow_symlinks="\n\twide links = yes"
+        follow_symlinks="\twide links = yes"
         log_warning "Access to symbolic links was granted for $FOLDER_PATH."
     fi
 
@@ -921,16 +921,10 @@ setup_samba_share_fedora(){
 \tpublic = no
 \tguest ok = no
 \tbrowseable = yes
+$read_only
+$follow_symlinks
 EOF
 )
-
-    if [ -n "$read_only" ]; then
-        conf_content+="$read_only"
-    fi
-
-    if [ -n "$follow_symlinks" ]; then
-        conf_content+="$follow_symlinks"
-    fi
 
     sudo semanage fcontext --add --type "samba_share_t" "$FOLDER_PATH(/.*)?"
     # To remove use
