@@ -154,12 +154,18 @@ HISTFILE=~/.zsh_history
 alias ls='ls --color=auto'
 alias ll='ls -lah --color=auto'
 alias grep='grep --color=auto'
-alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
-alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
 alias vbat='sudo powertop --time=10'
+alias vlc='flatpak run org.videolan.VLC . > /dev/null 2>&1 &'
 EOF
 )
-    echo "$zshrc_content" > "$zshrc_path"
+    if [[ $DISTRO == "fedora" ]]; then
+        zshrc_content+="
+# Fedora-specific aliases
+alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
+alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
+alias sup='sudo dnf update -y && flatpak update -y'"
+    fi
+    echo -e "$zshrc_content" > "$zshrc_path"
 }
 
 
@@ -378,7 +384,7 @@ setup_terminal(){
         log_info "To overwrite the existing directory at $font_path, delete it and re-run the command."
     else
         if [[ "$DISTRO" == "fedora" ]]; then
-            sudo dnf install cascadia-mono-nf-fonts -y
+            sudo dnf install $font_name -y
         else
             # Download the latest Caskaydia Nerd Font
             curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
