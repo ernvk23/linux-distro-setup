@@ -18,6 +18,8 @@ LOG_FILE="distro_setup_logs.txt"
 PACKAGE_MANAGER=""
 suggest_restart=false
 
+ZSHRC_PATH="$HOME/.zshrc"
+
 ## Determine the Distribution
 DISTRO=$(. /etc/os-release && echo "$ID")
 
@@ -135,10 +137,7 @@ flush_input_buffer(){
 }
 
 # Function to populate the .zshrc file
-add_config_to_zshrc() {
-    local zshrc_path="$HOME/.zshrc"
-    local zshrc_content=$(cat <<- 'EOF'
-
+zshrc_content=$(cat <<- 'EOF'
 # Set vim keybindings
 bindkey -v
 
@@ -158,26 +157,25 @@ alias vbat='sudo powertop --time=10'
 alias vlc='flatpak run org.videolan.VLC . > /dev/null 2>&1 &'
 EOF
 )
-    if [[ $DISTRO == "fedora" ]]; then
-        zshrc_content+="
+
+if [[ $DISTRO == "fedora" ]]; then
+    zshrc_content+="
 # Fedora-specific aliases
 alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
 alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
 alias sup='sudo dnf update -y && flatpak update -y'"
-    fi
-    echo -e "$zshrc_content" > "$zshrc_path"
-}
+fi
 
 
-add_zplug_to_zshrc() {
-    local zshrc_path="$HOME/.zshrc"
-    local zplug_content=$(cat <<- 'EOF'
+zplug_content=$(cat <<- 'EOF'
+# Zplug
+# Uncomment the ones you want also to add
 source ~/.zplug/init.zsh
 #zplug "plugins/git", from:oh-my-zsh
 #zplug "plugins/sudo", from:oh-my-zsh
 #zplug "plugins/command-not-found", from:oh-my-zsh
 zplug "zsh-users/zsh-syntax-highlighting"
-zplug "zsh-users/zsh-autosuggestions"
+#zplug "zsh-users/zsh-autosuggestions"
 zplug "zsh-users/zsh-history-substring-search"
 zplug "romkatv/powerlevel10k, as:theme, depth:1"
 #zplug "zsh-users/zsh-completions"
@@ -188,7 +186,6 @@ bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 bindkey "$terminfo[kcuu1]" history-substring-search-up
 bindkey "$terminfo[kcud1]" history-substring-search-down
-
 
 # zplug - install/load new plugins when zsh is started or reloaded
 if ! zplug check; then
@@ -201,8 +198,6 @@ fi
 zplug load
 EOF
 )
-    echo "$zplug_content" >> "$zshrc_path"
-}
 
 
 install_packages(){
@@ -339,11 +334,11 @@ setup_terminal(){
     echo
     echo "Configuring zsh..."
 
-    if [ -s ~/.zshrc ]; then
+    if [ -s $ZSHRC_PATH ]; then
         log_warning "The ~/.zshrc configuration already exists. Skipped modifying it."
         log_info "To overwrite the existing ~/.zshrc configuration, delete it and re-run the command."
     else
-        add_config_to_zshrc
+        echo -e "$zshrc_content" > $ZSHRC_PATH && source $ZSHRC_PATH
         log_success "Added a default configuration to ~/.zshrc."
     fi
     
@@ -362,7 +357,7 @@ setup_terminal(){
         log_warning "Zplug is already sourced in ~/.zshrc. Skipped adding it."
         log_info "If needed, verify any missing plugins in your ~/.zshrc file."
     else
-        add_zplug_to_zshrc
+        echo -e "\n$zplug_content" >> $ZSHRC_PATH && source $ZSHRC_PATH
         log_success "Added the zplug configuration to ~/.zshrc."
     fi
 
@@ -990,16 +985,14 @@ EOF
     sudo systemctl restart systemd-resolved.service
     
     # Add aliases to zshrc
-    local zshrc_path="$HOME/.zshrc"
-    local zshrc_content=$(cat <<- 'EOF'
+    warp_content=$(cat <<- 'EOF'
 # Cloudflare warp aliases
 alias warpc='warp-cli connect'
 alias warpd='warp-cli disconnect'
 alias warps='warp-cli status'
 EOF
 )
-    echo "$zshrc_content" >> "$zshrc_path"
-    source $zshrc_path
+    echo -e "\n$warp_content" >> "$ZSHRC_PATH" && source "$ZSHRC_PATH"
 
     # Register a new session with cloudflare warp and accept terms and conditions
     echo y | sudo warp-cli registration new
