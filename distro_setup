@@ -338,7 +338,7 @@ setup_terminal(){
         log_warning "The ~/.zshrc configuration already exists. Skipped modifying it."
         log_info "To overwrite the existing ~/.zshrc configuration, delete it and re-run the command."
     else
-        echo -e "$zshrc_content" > $ZSHRC_PATH && source $ZSHRC_PATH
+        echo -e "$zshrc_content" > $ZSHRC_PATH
         log_success "Added a default configuration to ~/.zshrc."
     fi
     
@@ -357,7 +357,7 @@ setup_terminal(){
         log_warning "Zplug is already sourced in ~/.zshrc. Skipped adding it."
         log_info "If needed, verify any missing plugins in your ~/.zshrc file."
     else
-        echo -e "\n$zplug_content" >> $ZSHRC_PATH && source $ZSHRC_PATH
+        echo -e "\n$zplug_content" >> $ZSHRC_PATH
         log_success "Added the zplug configuration to ~/.zshrc."
     fi
 
