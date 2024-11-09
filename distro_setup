@@ -561,7 +561,7 @@ enable_hw_acceleration_fedora(){
 	sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 	
     # On Fedora, we default to use the openh264 library
-	sudo dnf config-manager --enable fedora-cisco-openh264
+	sudo dnf-3 config-manager --enable fedora-cisco-openh264
     # https://fedoraproject.org/wiki/OpenH264
 	# enable OpenH264 on Firefox
 	sudo dnf install -y mozilla-openh264
@@ -1079,10 +1079,10 @@ main(){
         echo "4- Enable system's and Firefox hardware acceleration support"
         echo "   • Install non-free media codecs (h.264, etc.)"
         echo "   • Enable system-wide and Firefox's hardware acceleration support"
-        echo "5- Disable GNOME power-profile-daemon color change (AMD-based; not recommended on Fedora 41)"
+        echo "5- Disable GNOME power-profile-daemon color change (AMD-based; proceed if you know what you are doing!)"
         echo "6- Set Yaru icon theme"
-        echo "7- Configure DNF for faster downloads (Not recommended on Fedora 41; proceed if you know what you are doing!)"
-        echo "8- Set governor mode to performance permanently (Not recommended on Fedora 41; proceed if you know what you are doing!)"
+        echo "7- Configure DNF for faster downloads (Not recommended; proceed if you know what you are doing!)"
+        echo "8- Set governor mode to performance permanently (Not recommended; proceed if you know what you are doing!)"
         echo -e "9- Setup a local network share with samba ($HOME/Shared by default)"
         echo "----------------------- Fedora Unstable Options --------------------"
         echo "10- Install Cloudflare WARP (VPN-like service)"
