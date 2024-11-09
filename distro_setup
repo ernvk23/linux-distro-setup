@@ -984,21 +984,11 @@ EOF
 
     sudo systemctl restart systemd-resolved.service
     
-    # Add aliases to zshrc
-    warp_content=$(cat <<- 'EOF'
-# Cloudflare warp aliases
-alias warpc='warp-cli connect'
-alias warpd='warp-cli disconnect'
-alias warps='warp-cli status'
-EOF
-)
-    echo -e "\n$warp_content" >> "$ZSHRC_PATH" && source "$ZSHRC_PATH"
-
     # Register a new session with cloudflare warp and accept terms and conditions
     echo y | sudo warp-cli registration new
     
     log_success "Cloudflare Warp has been installed."
-    log_info "Use 'warp-cli --help' for more information.\nIf you used the script's option 1 or 3 for generating the Zsh config, you can also use the following shortcuts:\n• warpc for connecting\n• warpd for disconnecting\n• warps for status."
+    log_info "Use 'warp-cli --help' for more information."
 }
 
 
