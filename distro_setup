@@ -16,7 +16,6 @@ TIMEOUT=10
 ## Global Variables
 LOG_FILE="distro_setup_logs.txt"
 PACKAGE_MANAGER=""
-is_zshrc_modified=false
 is_restart_required=false
 
 ZSHRC_PATH="$HOME/.zshrc"
@@ -359,7 +358,6 @@ setup_terminal(){
         log_info "If needed, verify any missing plugins in your ~/.zshrc file."
     else
         echo -e "\n$zplug_content" >> $ZSHRC_PATH
-        is_zshrc_modified=true
         log_success "Added the zplug configuration to ~/.zshrc."
     fi
 
@@ -391,7 +389,7 @@ setup_terminal(){
         # Update the font cache
         sudo fc-cache -f -v > /dev/null
         log_success "Added $font_name to the system's fonts."
-        log_info "To use $font_name, set it in your terminal's Preferences under 'Custom Font'."
+        log_info "To use $font_name, set it in your terminal's Preferences under 'Custom Font'. In order to make the new fonts available reopen the terminal."
     fi
 
     echo
@@ -402,7 +400,6 @@ setup_terminal(){
     else
         # Do not prompt the user again for a password
         sudo chsh -s "$(which zsh)" "$USER"
-        is_zshrc_modified=true
         log_success "Changed the default shell to ZSH for the current user."
     fi
 }
@@ -439,7 +436,7 @@ setup_neovim(){
             cd build && cpack -G DEB && sudo dpkg -i nvim-linux64.deb
             cd ~/ && rm -rf neovim
             log_success "Installed neovim (via manual build)."
-            log_info "To remove the installed neovim, use: 'sudo apt purge neovim'."
+            log_info "To remove the installed neovim, use: 'sudo $PACKAGE_MANAGER remove neovim'."
             ;;
         esac
     fi
@@ -1166,11 +1163,7 @@ main(){
                 install_cloudflare_warp_fedora
                 ;;
             q)
-                if "$is_zshrc_modified"; then
-                    exit 0 && source $ZSHRC_PATH
-                else
-                    exit 0 && echo "Exited."
-                fi
+                echo "Exited." && exit 0
                 ;;
             *)
                 echo
@@ -1205,7 +1198,7 @@ main(){
         if "$is_restart_required"; then
             echo -e "Some changes need a system restart to take effect. Please RESTART your system to finish."
         fi
-        
+
         flush_input_buffer
         read -p "Press Enter to continue..."
     done
