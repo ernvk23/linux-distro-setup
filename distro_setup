@@ -961,7 +961,7 @@ install_cloudflare_warp_fedora(){
     # Add repository
 
     if ! dnf repolist | grep -q cloudflare-warp-stable; then
-        sudo dnf config-manager --add-repo https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo
+        sudo dnf-3 config-manager --add-repo https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo
     fi
 
     sudo dnf makecache -y
