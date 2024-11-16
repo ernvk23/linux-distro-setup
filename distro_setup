@@ -154,7 +154,7 @@ alias ls='ls --color=auto'
 alias ll='ls -lah --color=auto'
 alias grep='grep --color=auto'
 alias vbat='sudo powertop --time=10'
-alias vlc='flatpak run org.videolan.VLC . > /dev/null 2>&1 &'
+alias vlc='nohup flatpak run org.videolan.VLC . > /dev/null 2>&1 &'
 EOF
 )
 
@@ -162,8 +162,8 @@ EOF
 if [[ $DISTRO == "fedora" ]]; then
     zshrc_content+="
 alias sysu='sudo dnf update -y && flatpak update -y'
-alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
 alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
+alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
 alias vpnc='nmcli connection up "$(nmcli -t -f NAME connection show | grep 'protonvpn' | tail -n 1)"'
 alias vpnd='nmcli connection down "$(nmcli -t -f NAME connection show --active | grep 'protonvpn')"'
 alias sysm='ptyxis --new-window -x "nvtop"; ptyxis --tab -x "btop"; ptyxis --tab -x "sudo powertop --time=10"'"
