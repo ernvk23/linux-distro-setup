@@ -33,6 +33,7 @@ FEDORA_PACKAGES=(
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
     "gnome-shell-extension-caffeine"
+    "gnome-pomodoro"
 )
 
 UBUNTU_PACKAGES=(
