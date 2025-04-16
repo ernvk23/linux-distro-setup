@@ -953,7 +953,9 @@ EOF
 }
 
 install_cloudflare_warp_fedora(){
+
     # WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
+    # (SEEMS GOT SOLVED SINCE FEDORA 41)
     echo
     echo "Installing cloudfare warp... "
 
@@ -1010,19 +1012,6 @@ ensure_running_conditions(){
         exit 1
     fi
 
-    # case "$DISTRO" in
-    # "fedora")
-    #     ! dnf needs-restarting -r
-    #     ;;
-    # "debian" | "ubuntu")
-    #     [ -f /var/run/reboot-required ] || [ -d /var/run/reboot-required.d ]
-    #     ;;
-    # esac
-    # if [[ "$?" -eq 0 ]]; then
-    #     log_error "Your system has pending updates. Restart it and re-run the script."
-    #     echo -e "$ERROR Your system has pending updates. Please restart it and re-run the script. Exiting..."
-    #     exit 1
-    # fi
 
     # Select package manager and update its cache
     echo "Updating system's package manager cache..."
@@ -1090,7 +1079,6 @@ main(){
         echo -e "9- Setup a local network share with samba ($HOME/Shared by default)"
         echo "----------------------- Fedora Unstable Options --------------------"
         echo "10- Install Cloudflare WARP (VPN-like service)"
-        echo "   WARNING: May cause issues with GNOME camera and PipeWire"
         echo "q- Quit"
         echo "--------------------------------------------------------------------"
         echo "Note: All options will only be applied if not already set/configured."

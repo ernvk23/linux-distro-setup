@@ -63,7 +63,6 @@ echo "8- Set governor mode to performance permanently (Not recommended; proceed 
 echo -e "9- Setup a local network share with samba ($HOME/Shared by default)"
 echo "----------------------- Fedora Unstable Options --------------------"
 echo "10- Install Cloudflare WARP (VPN-like service)"
-echo "   WARNING: May cause issues with GNOME camera and PipeWire"
 echo "q- Quit"
 echo "--------------------------------------------------------------------"
 echo "Note: All options will only be applied if not already set/configured."
