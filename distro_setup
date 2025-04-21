@@ -165,8 +165,6 @@ if [[ $DISTRO == "fedora" ]]; then
 alias usys='sudo dnf update -y && flatpak update -y'
 alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
 alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
-alias vpn='nmcli connection up $(nmcli -t -f NAME connection show | grep 'protonvpn' | tail -n 1)'
-alias vpnd='nmcli connection down $(nmcli -t -f NAME connection show --active | grep 'protonvpn')'
 alias msys='ptyxis --new-window -x "nvtop"; ptyxis --tab -x "btop"; ptyxis --tab -x \"sudo powertop --time=10\"'"
 fi
 
@@ -1077,25 +1075,26 @@ main(){
     while true; do
         INITIAL_LINES="$(count_log_file_lines)"
         echo "--------------------------- Setup Options ---------------------------"
+        echo "0- Quick setup"
+        echo "   • Options: 1, 2, 3, 4, 6"
         echo "1- Minimal system setup"
         echo "   • Install optional packages"
         echo "   • Set up Zsh with plugins (syntax highlighting, autosuggestions, etc.)"
         echo "   • Install Caskaydia Nerd Font"
         echo "   • Install and configure Neovim with kickstart"
-        echo "   • Set up Git (install, configure, generate SSH key)"
         echo "2- Install Flatpak packages"
-        echo "3- Full system setup (includes options 1 and 2)"
-        echo "-------------------------- Fedora Options --------------------------"
+        echo "3- Set up Git (install, configure, generate SSH key)"
+        echo "-------------------------- Fedora Important --------------------------"
         echo "4- Enable system's and Firefox hardware acceleration support"
         echo "   • Install non-free media codecs (h.264, etc.)"
         echo "   • Enable system-wide and Firefox's hardware acceleration support"
-        echo "5- Disable GNOME power-profile-daemon color change (AMD-based; proceed if you know what you are doing!)"
-        echo "6- Set Yaru icon theme"
-        echo "7- Configure DNF for faster downloads (Not recommended; proceed if you know what you are doing!)"
-        echo "8- Set governor mode to performance permanently (Not recommended; proceed if you know what you are doing!)"
-        echo -e "9- Setup a local network share with samba ($HOME/Shared by default)"
-        echo "----------------------- Fedora Unstable Options --------------------"
-        echo "10- Install Cloudflare WARP (VPN-like service)"
+        echo "-------------------------- Fedora Optional --------------------------"
+        echo "5- Configure DNF for faster downloads (Not recommended; proceed if you know what you are doing!)"
+        echo "6- Install Cloudflare WARP (VPN-like service)"
+        echo "7- Disable GNOME power-profile-daemon color change (AMD-based; proceed if you know what you are doing!)"
+        echo "8- Set Yaru icon theme"
+        echo "9- Set governor mode to performance permanently (Not recommended; proceed if you know what you are doing!)"
+        echo -e "10- Setup a local network share with samba ($HOME/Shared by default)"
         echo "q- Quit"
         echo "--------------------------------------------------------------------"
         echo "Note: All options will only be applied if not already set/configured."
@@ -1103,6 +1102,18 @@ main(){
         flush_input_buffer
         read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9, 10 or q): " selection
         case "$selection" in
+            0)
+                if ! ask_user_confirmation "You selected a quick setup. Would you like to proceed?"; then
+                    continue
+                fi
+                install_optional_packages
+                setup_terminal
+                setup_neovim
+                install_flatpak_packages
+                enable_hw_acceleration_fedora
+                install_cloudflare_warp_fedora
+                setup_git
+                ;;
             1)
                 if ! ask_user_confirmation "You selected to perform a minimal system setup. Would you like to proceed?"; then
                     continue
@@ -1110,7 +1121,6 @@ main(){
                 install_optional_packages
                 setup_terminal
                 setup_neovim
-                setup_git
                 ;;
             2)
                 if ! ask_user_confirmation "You selected to install the flatpak packages. Would you like to proceed?"; then
@@ -1119,13 +1129,9 @@ main(){
                 install_flatpak_packages
                 ;;  
             3)
-                if ! ask_user_confirmation "You selected to perform a full system setup. Would you like to proceed?"; then
+                if ! ask_user_confirmation "You selected to set up git. Would you like to proceed?"; then
                     continue
                 fi
-                install_optional_packages
-                setup_terminal
-                setup_neovim
-                install_flatpak_packages
                 setup_git
                 ;;
             4)
@@ -1135,41 +1141,40 @@ main(){
                 enable_hw_acceleration_fedora
                 ;;            
             5)
-                if ! ask_user_confirmation "You selected to disable GNOME power-profile-daemon color change. Would you like to proceed?"; then
-                    continue
-                fi
-                disable_ppd_color_change_fedora
-                ;;
-            6)
-                if ! ask_user_confirmation "You selected to set yaru icons theme. Would you like to proceed?"; then
-                    continue
-                fi
-                set_yaru_icons_fedora
-                ;;
-            7)
                 if ! ask_user_confirmation "You selected to configure the DNF for faster downloads. Would you like to proceed?"; then
                     continue
                 fi
                 set_faster_downloads_fedora
                 ;;
-            
+            6)
+                if ! ask_user_confirmation "You selected to install cloudflare warp. Would you like to proceed?"; then
+                    continue
+                fi
+                install_cloudflare_warp_fedora
+                ;;
+            7)
+                if ! ask_user_confirmation "You selected to disable GNOME power-profile-daemon color change. Would you like to proceed?"; then
+                    continue
+                fi
+                disable_ppd_color_change_fedora
+                ;;
             8)
+                if ! ask_user_confirmation "You selected to set yaru icons theme. Would you like to proceed?"; then
+                    continue
+                fi
+                set_yaru_icons_fedora
+                ;;
+            9)
                 if ! ask_user_confirmation "You selected to set the power mode to performance permanently. Would you like to proceed?"; then
                     continue
                 fi
                 set_governor_to_performance_fedora
                 ;;
-            9)
+            10)
                 if ! ask_user_confirmation "You selected to setup a local network share with samba. Would you like to proceed?"; then
                     continue
                 fi
                 setup_samba_share_fedora
-                ;;
-            10)
-                if ! ask_user_confirmation "You selected to install cloudflare warp. Would you like to proceed?"; then
-                    continue
-                fi
-                install_cloudflare_warp_fedora
                 ;;
             q)
                 echo "Exited." && exit 0
