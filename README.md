@@ -7,13 +7,18 @@ This script automates the setup process after a fresh installation of Fedora, De
 ### Prerequisites
 - `curl` (should be pre-installed on most Linux distributions)
 
-### Download
+### Download and execute
+1. Run the following command on your terminal.
+    ```bash
+    curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro_setup && chmod +x ./distro_setup && ./distro_setup
+    ```
+### Only download
 1. Open your terminal and navigate to the desired directory.
 2. Run the following command to download the script:
   ```bash
   curl -O https://raw.githubusercontent.com/ernvk23/linux-distro-setup/main/distro_setup
   ```
-### Usage
+### Execution
 1. Review the script and modify the package lists as needed.
 2. Run the following command to make the script executable and run it:
   ```bash
