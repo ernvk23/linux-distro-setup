@@ -39,7 +39,7 @@ This script automates the setup process after a fresh installation of Fedora, De
     - change yaru icons theme color
     - disable PPD color change
     - setup local network share using samba
-    - install cloudflare warp (VPN like) (WARNING!!! breaks gnome camera)
+    - install cloudflare warp (VPN like)
 
 #### Script's code snippet (shown menu)
 ```bash
@@ -69,7 +69,7 @@ echo "Note: All options will only be applied if not already set/configured."
 ```
 
 ### Tested Distributions
-- Fedora 41 *Workstation* **(GNOME)**
+- Fedora 42 *Workstation* **(GNOME)**
 - Debian 12 *Bookworm* **(GNOME)**
 - Ubuntu 24.04 *Noble Numbat* **(GNOME)**
 

@@ -268,6 +268,7 @@ install_packages(){
         echo -e "${HIGHLIGHT}Press 'y/Y' (or wait $TIMEOUT seconds) to proceed; otherwise, press any other key to abort.${NC}"
         flush_input_buffer
         read -t "$TIMEOUT" -n 1 -r -p "Proceed? (y/Y or wait): " choice || choice='y'
+        echo
         if [[ ! "$choice" =~ [yY] ]]; then
             log_info "The user skipped installing: ${to_install[*]}"
             return 0
@@ -991,11 +992,27 @@ EOF
     
     # Register a new session with cloudflare warp and accept terms and conditions
     echo y | sudo warp-cli registration new
+
+
+    # Add WARP aliases to .zshrc if it exists
+    if [ -f "$ZSHRC_PATH" ]; then
+        if ! grep -q "# WARP aliases" "$ZSHRC_PATH"; then
+            # Append after the line matching "# General aliases"
+            sed -i "/# General aliases/a\\
+# WARP aliases\\
+alias warpc='warp-cli connect'\\
+alias warpd='warp-cli disconnect'\\
+alias warps='warp-cli status'" "$ZSHRC_PATH"
+            log_success "Added WARP aliases to .zshrc"
+        else
+            log_warning "WARP aliases already exist in .zshrc. Skipped adding them."
+        fi
+        log_info "Use warpc/warpd/warps for quick connecting/disconnecting/status"
+    fi
     
     log_success "Cloudflare Warp has been installed."
     log_info "Use 'warp-cli --help' for more information."
 }
-
 
 ensure_running_conditions(){
     supported_distros=("fedora" "debian" "ubuntu")
