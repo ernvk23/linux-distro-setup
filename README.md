@@ -48,7 +48,7 @@ This script automates the setup process after a fresh installation of Fedora, De
 ```bash
 echo "--------------------------- Setup Options ---------------------------"
 echo "0- Quick setup"
-echo "   • Options: 1, 2, 3(last), 4, 6"
+echo "   • Options: 1, 2, 3, 4, 6"
 echo "1- Minimal system setup"
 echo "   • Install optional packages"
 echo "   • Set up Zsh with plugins (syntax highlighting, autosuggestions, etc.)"
