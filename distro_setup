@@ -601,8 +601,8 @@ enable_hw_acceleration_fedora(){
 
     #To enable hardware acceleration on Firefox (optional but highly advised) you should: Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true. Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons & Themes->Plugins. In about:config (type it in the search bar) set the following fields to true: media.ffmpeg.vaapi.enabled, gfx.webrender.all (if you enabled HW on settings there is no need here), media.gmp-gmpopenh264.autoupdate, media.gmp-gmpopenh264.enabled, media.gmp-gmpopenh264.provider.enabled. You can use 'vainfo' to check for AV1 hardware support. Typically, YouTube enforces this format without considering your system's compatibility, which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false. However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true. Feel free to ask if you need further assistance!
 
-    policy_dir="/etc/firefox/policies"
-    policy_file="$policy_dir/policies.json"
+    local policy_dir="/etc/firefox/policies"
+    local policy_file="$policy_dir/policies.json"
 
     # Create policies directory if missing
     sudo mkdir -p "$policy_dir"
@@ -611,17 +611,17 @@ enable_hw_acceleration_fedora(){
     if [ -s "$policy_file" ]; then
         policy_backup="$policy_file.backup_$(date +%Y%m%d_%H%M%S)"
         sudo cp "$policy_file" "$policy_backup"
-        log_info "Existing policy file backed up to $policy_backup."
+        log_info "Existing Firefox policy file backed up to $policy_backup."
     fi
 
     # Determine AV1 support
-    av1_enabled="true"
+    local av1_enabled="true"
     if ! vainfo 2>/dev/null | grep -q "AV1"; then
         av1_enabled="false"
     fi
 
     # Construct the policies.json content directly
-    policy_json=$(cat <<-EOF
+    local policy_json=$(cat <<-EOF
 {
   "policies": {
     "Preferences": {
@@ -636,11 +636,10 @@ enable_hw_acceleration_fedora(){
 }
 EOF
 )
-
     # Write JSON content to policies.json with sudo tee
     echo "$policy_json" | sudo tee "$policy_file" > /dev/null
     log_success "Enabled Firefox hardware acceleration."
-    log_info "You can check the file $policy_file to see the enforced flags."
+    log_info "Check Firefox's currently enforced options and flags in the policy file $policy_file."
 }
 
 
