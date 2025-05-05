@@ -601,73 +601,46 @@ enable_hw_acceleration_fedora(){
 
     #To enable hardware acceleration on Firefox (optional but highly advised) you should: Make sure to enable it on Settings->Performance or just set gfx.webrender.all to true. Enable OpenH264 Video Codec add-on (from Cisco) on Settings->Add-ons & Themes->Plugins. In about:config (type it in the search bar) set the following fields to true: media.ffmpeg.vaapi.enabled, gfx.webrender.all (if you enabled HW on settings there is no need here), media.gmp-gmpopenh264.autoupdate, media.gmp-gmpopenh264.enabled, media.gmp-gmpopenh264.provider.enabled. You can use 'vainfo' to check for AV1 hardware support. Typically, YouTube enforces this format without considering your system's compatibility, which may lead to increased battery usage. If your system doesn't support AV1, set media.av1.enabled to false. However, keep in mind that if the source stream is exclusively in AV1 format (rarely), you won't be able to play the video unless you change this setting back to true. Feel free to ask if you need further assistance!
 
-    firefox_dir="$HOME/.mozilla/firefox"
+    policy_dir="/etc/firefox/policies"
+    policy_file="$policy_dir/policies.json"
 
-    # Function to check for Firefox profiles
-    check_firefox_profiles() {
-        [ -d "$firefox_dir" ] && [ -n "$(find "$firefox_dir" -maxdepth 1 -type d -name "*.default*")" ]
-    }
+    # Create policies directory if missing
+    sudo mkdir -p "$policy_dir"
 
-    # Check for Firefox profiles
-    # Create a Firefox profile if none exists
-    if ! check_firefox_profiles; then
-        echo "No Firefox profile found. Creating a default profile..."
-        log_info "No Firefox profile found. Created a default profile."
-        firefox --headless &> /dev/null &
-        firefox_pid=$!
-        
-        # Wait for a short time to ensure Firefox has time to create the profile
-        sleep 5
-        
-        # Kill the Firefox process
-        kill $firefox_pid &>/dev/null
-        
-        # Wait for the process to fully terminate
-        wait $firefox_pid &>/dev/null
-        
-        # Check again for profiles
-        if ! check_firefox_profiles; then
-            log_error "Failed to create a Firefox profile."
-            log_info "Run Firefox at least once before executing this script."
-            return 1
-        fi
+    # Backup existing policies.json if present
+    if [ -s "$policy_file" ]; then
+        policy_backup="$policy_file.backup_$(date +%Y%m%d_%H%M%S)"
+        sudo cp "$policy_file" "$policy_backup"
+        log_info "Existing policy file backed up to $policy_backup."
     fi
-     
-    # Find the most recently modified profile directory
-    profile_path=$(find "$firefox_dir" -maxdepth 1 -type d -name "*.default*" -printf '%T@ %p\n' | sort -n | tail -1 | cut -f2- -d" ")
-    
-    # Backup the existing user.js file if it exists
-    profile_file="$profile_path/user.js"
-    if [ -s "$profile_file" ]; then
-        profile_backup="$profile_file.backup_$(date +%Y%m%d_%H%M%S)"
-        cp "$profile_file" "$profile_backup"
-        log_info "File $profile_file already existed. Backup $profile_backup created with original values."
-    fi
-    
-    set_pref() {
-        local pref=$1
-        local value=$2
-        
-        if [ -f "$profile_file" ] && grep -q "user_pref(\"$pref\"," "$profile_file"; then
-            sed -i "s|user_pref(\"$pref\",[^)]*)|user_pref(\"$pref\", $value)|" "$profile_file"
-        else
-            echo "user_pref(\"$pref\", $value);" >> "$profile_file"
-        fi
-    }
 
-    set_pref "gfx.webrender.all" true
-    set_pref "media.ffmpeg.vaapi.enabled" true
-    set_pref "media.gmp-gmpopenh264.autoupdate" true
-    set_pref "media.gmp-gmpopenh264.enabled" true
-    set_pref "media.gmp-gmpopenh264.provider.enabled" true
-    
+    # Determine AV1 support
+    av1_enabled="true"
     if ! vainfo 2>/dev/null | grep -q "AV1"; then
-        set_pref "media.av1.enabled" false
+        av1_enabled="false"
     fi
 
-    log_success "Enabled Firefox hardware acceleration."
-    log_info "You can check the file $profile_file to see the modified flags for Firefox."
+    # Construct the policies.json content directly
+    policy_json=$(cat <<-EOF
+{
+  "policies": {
+    "Preferences": {
+      "gfx.webrender.all": true,
+      "media.ffmpeg.vaapi.enabled": true,
+      "media.gmp-gmpopenh264.autoupdate": true,
+      "media.gmp-gmpopenh264.enabled": true,
+      "media.gmp-gmpopenh264.provider.enabled": true,
+      "media.av1.enabled": $av1_enabled
+    }
+  }
+}
+EOF
+)
 
+    # Write JSON content to policies.json with sudo tee
+    echo "$policy_json" | sudo tee "$policy_file" > /dev/null
+    log_success "Enabled Firefox hardware acceleration."
+    log_info "You can check the file $policy_file to see the enforced flags."
 }
 
 
