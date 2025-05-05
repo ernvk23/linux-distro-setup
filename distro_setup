@@ -367,10 +367,11 @@ setup_terminal(){
     echo
     echo "Adding Nerd Fonts to the system fonts..."
     
+    local font_name=""
     if [[ $DISTRO == "fedora" ]]; then
         font_name="cascadia-mono-nf-fonts"
     else
-        font_name="caskaydia-mono-nf-fonts"
+        font_name="fonts-cascadia-code"
     fi
     fonts_dir="/usr/share/fonts"
     font_path="$fonts_dir/$font_name"
@@ -381,14 +382,7 @@ setup_terminal(){
         log_warning "The directory $font_path already exists. Skipped downloading it."
         log_info "To overwrite the existing directory at $font_path, delete it and re-run the command."
     else
-        if [[ "$DISTRO" == "fedora" ]]; then
-            sudo dnf install $font_name -y
-        else
-            # Download the latest Caskaydia Nerd Font
-            curl -L -s -o ~/$font_name.zip $(curl -s https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest | grep "browser_download_url.*$font_name.zip" | cut -d '"' -f 4)
-            sudo unzip ~/$font_name.zip '*.ttf' -d "$font_path" > /dev/null
-            rm ~/$font_name.zip
-        fi
+        sudo $PACKAGE_MANAGER install $font_name -y
         # Update the font cache
         sudo fc-cache -f -v > /dev/null
         log_success "Added $font_name to the system's fonts."
