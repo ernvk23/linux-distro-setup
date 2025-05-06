@@ -991,7 +991,7 @@ install_docker_desktop_fedora(){
         log_warning "Docker Desktop is already installed. Skipped installing it."
         return 0
     fi
-    
+
     # Add repository
 
     sudo dnf -y install dnf-plugins-core
@@ -1000,7 +1000,7 @@ install_docker_desktop_fedora(){
     # fi
 
     echo "Downloading Docker Desktop"
-    curl -L -o "https://desktop.docker.com/linux/main/amd64/docker-desktop-x86_64.rpm?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-linux-amd64"
+    curl -L -O "https://desktop.docker.com/linux/main/amd64/docker-desktop-x86_64.rpm?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-linux-amd64"
 
     sudo dnf install -y ./docker-desktop-x86_64.rpm
     rm -f ./docker-desktop-x86_64.rpm
