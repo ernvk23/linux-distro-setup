@@ -918,9 +918,6 @@ EOF
 }
 
 install_cloudflare_warp_fedora(){
-
-    # WARNING: When installed, there seems to be an issue that prevents starting gnome's camera (snapshot)\n  without manually restarting the PipeWire service. However, the system's camera will remain\n  available and usable, just not through the snapshot feature. It is also possible to experience\n  further issues with PipeWire. CAUTION IS ADVISED."
-    # (SEEMS GOT SOLVED SINCE FEDORA 41)
     echo
     echo "Installing cloudfare warp... "
 
@@ -929,11 +926,13 @@ install_cloudflare_warp_fedora(){
         return 0
     fi
 
-    # Add repository
-
-    if ! dnf repolist | grep -q cloudflare-warp-stable; then
-        sudo dnf config-manager addrepo --from-repofile=https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo
+    if dnf list installed cloudflare-warp &>/dev/null; then
+        log_warning "Claudflare Warp was already installed. Aborted installation."
+        return 0
     fi
+
+    # Add repository
+    sudo dnf-3 config-manager --add-repo https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo
 
     sudo dnf makecache -y
     sudo dnf install -y cloudflare-warp
@@ -976,6 +975,35 @@ alias warps='warp-cli status'" "$ZSHRC_PATH"
     
     log_success "Cloudflare Warp has been installed."
     log_info "Use 'warp-cli --help' for more information."
+}
+
+install_docker_desktop_fedora(){
+    echo
+    echo "Installing Docker Desktop... "
+
+    if [[ "$DISTRO" != "fedora" ]]; then
+        log_warning "Current distribution $DISTRO is not Fedora. Skipped installing Docker Desktop."
+        return 0
+    fi
+
+    if dnf list installed docker-desktop &>/dev/null; then
+        log_warning "Docker Desktop was already installed. Aborted installation."
+        return 0
+    fi
+    # Add repository
+
+    sudo dnf -y install dnf-plugins-core
+    # if ! dnf repolist | grep -q docker-ce-stable; then
+    sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+    # fi
+
+    echo "Downloading Docker Desktop"
+    curl -L -o "https://desktop.docker.com/linux/main/amd64/docker-desktop-x86_64.rpm?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-linux-amd64"
+
+    sudo dnf install -y ./docker-desktop-x86_64.rpm
+    rm -f ./docker-desktop-x86_64.rpm
+
+    log_success "Docker Desktop successfully installed."
 }
 
 ensure_running_conditions(){
@@ -1042,7 +1070,7 @@ main(){
         INITIAL_LINES="$(count_log_file_lines)"
         echo "--------------------------- Setup Options ---------------------------"
         echo "0- Quick setup"
-        echo "   • Options: 1, 2, 3, 4, 6"
+        echo "   • Options: 1, 2, 3, 4, 6, 11"
         echo "1- Minimal system setup"
         echo "   • Install optional packages"
         echo "   • Set up Zsh with plugins (syntax highlighting, autosuggestions, etc.)"
@@ -1061,12 +1089,13 @@ main(){
         echo "8- Set Yaru icon theme"
         echo "9- Set governor mode to performance permanently (Not recommended; proceed if you know what you are doing!)"
         echo -e "10- Setup a local network share with samba ($HOME/Shared by default)"
+        echo "11- Install Docker Desktop"
         echo "q- Quit"
         echo "--------------------------------------------------------------------"
         echo "Note: All options will only be applied if not already set/configured."
 
         flush_input_buffer
-        read -p "Enter the option/s you would like to perform (1, 2, 3, 4, 5, 6, 7, 8, 9, 10 or q): " selection
+        read -p "Enter the option/s you would like to perform (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 or q): " selection
         case "$selection" in
             0)
                 if ! ask_user_confirmation "You selected a quick setup. Would you like to proceed?"; then
@@ -1078,6 +1107,7 @@ main(){
                 install_flatpak_packages
                 enable_hw_acceleration_fedora
                 install_cloudflare_warp_fedora
+                install_docker_desktop_fedora
                 setup_git
                 ;;
             1)
@@ -1141,6 +1171,12 @@ main(){
                     continue
                 fi
                 setup_samba_share_fedora
+                ;;
+            11) 
+                if ! ask_user_confirmation "You selected to install Docker Desktop. Would you like to proceed?"; then
+                    continue
+                fi
+                install_docker_desktop_fedora
                 ;;
             q)
                 echo "Exited." && exit 0

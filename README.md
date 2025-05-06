@@ -33,7 +33,7 @@ This script automates the setup process after a fresh installation of Fedora, De
     - Neovim with kickstart.nvim
     - Git with SSH key generation for github setup
 3. Flatpak Apps
-    - Extension Manager, Flatseal, PeaZip, qBittorrent, Foliate, Warp, VLC, Video Downloader, Opera, Obsidian, Blanket
+    - Extension Manager, Flatseal, PeaZip, qBittorrent, Foliate, VLC, Video Downloader, Opera, Blanket
 5. Others (Fedora)
     - add h.264 support for HW acceleration
     - enable HW acceleration on Firefox
@@ -42,13 +42,14 @@ This script automates the setup process after a fresh installation of Fedora, De
     - change yaru icons theme color
     - disable PPD color change
     - setup local network share using samba
-    - install cloudflare warp (VPN like)
+    - install Cloudflare Warp (VPN like)
+    - install Docker Desktop
 
 #### Script's code snippet (shown menu)
 ```bash
 echo "--------------------------- Setup Options ---------------------------"
 echo "0- Quick setup"
-echo "   • Options: 1, 2, 3, 4, 6"
+echo "   • Options: 1, 2, 3, 4, 6, 11"
 echo "1- Minimal system setup"
 echo "   • Install optional packages"
 echo "   • Set up Zsh with plugins (syntax highlighting, autosuggestions, etc.)"
@@ -67,6 +68,7 @@ echo "7- Disable GNOME power-profile-daemon color change (AMD-based; proceed if 
 echo "8- Set Yaru icon theme"
 echo "9- Set governor mode to performance permanently (Not recommended; proceed if you know what you are doing!)"
 echo -e "10- Setup a local network share with samba ($HOME/Shared by default)"
+echo "11- Install Docker Desktop"
 echo "q- Quit"
 echo "--------------------------------------------------------------------"
 echo "Note: All options will only be applied if not already set/configured."
