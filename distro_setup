@@ -926,8 +926,8 @@ install_cloudflare_warp_fedora(){
         return 0
     fi
 
-    if dnf list installed cloudflare-warp &>/dev/null; then
-        log_warning "Claudflare Warp was already installed. Aborted installation."
+    if is_package_installed cloudflare-warp; then
+        log_warning "Claudflare Warp is already installed. Skipped installing it."
         return 0
     fi
 
@@ -986,10 +986,12 @@ install_docker_desktop_fedora(){
         return 0
     fi
 
-    if dnf list installed docker-desktop &>/dev/null; then
-        log_warning "Docker Desktop was already installed. Aborted installation."
+
+    if is_package_installed docker-desktop; then
+        log_warning "Docker Desktop is already installed. Skipped installing it."
         return 0
     fi
+    
     # Add repository
 
     sudo dnf -y install dnf-plugins-core
