@@ -64,7 +64,7 @@ FLATPAK_PACKAGES=(
     "com.github.unrud.VideoDownloader" 
     "com.mattjakeman.ExtensionManager"
     "com.rafaelmardojai.Blanket"
-    #"com.opera.Opera"
+    "com.opera.Opera"
     #"md.obsidian.Obsidian"
     #"app.drey.Warp"
 )
