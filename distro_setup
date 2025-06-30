@@ -26,6 +26,9 @@ DISTRO=$(. /etc/os-release && echo "$ID")
 FEDORA_PACKAGES=(
     "python3-pip"
     "golang"
+)
+
+FEDORA_NON_WSL_PACKAGES=(
     "btop"
     "nvtop"
     "powertop"
@@ -38,6 +41,9 @@ FEDORA_PACKAGES=(
 
 UBUNTU_PACKAGES=(
     "python3-pip"
+)
+
+UBUNTU_NON_WSL_PACKAGES=(
     "gnome-tweaks"
     "gnome-shell-pomodoro"
     "caffeine"
@@ -311,9 +317,15 @@ install_optional_packages() {
     case "$DISTRO" in
     "fedora")
         packages=("${FEDORA_PACKAGES[@]}")
+        if [[ -z "$WSL_DISTRO_NAME" ]]; then
+            packages+=("${FEDORA_NON_WSL_PACKAGES[@]}")
+        fi
         ;;
     "ubuntu")
         packages=("${UBUNTU_PACKAGES[@]}")
+        if [[ -z "$WSL_DISTRO_NAME" ]]; then
+            packages+=("${UBUNTU_NON_WSL_PACKAGES[@]}")
+        fi
         ;;
     "debian")
         packages=("${DEBIAN_PACKAGES[@]}")
