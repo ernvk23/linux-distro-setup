@@ -70,7 +70,6 @@ FLATPAK_PACKAGES=(
     "com.github.unrud.VideoDownloader" 
     "com.mattjakeman.ExtensionManager"
     "com.rafaelmardojai.Blanket"
-    "com.opera.Opera"
     #"md.obsidian.Obsidian"
     #"app.drey.Warp"
 )
@@ -343,7 +342,7 @@ setup_terminal(){
     echo
     echo "Setting up terminal..."
     
-    local dependencies=("zsh" "curl" "unzip" "git")
+    local dependencies=("zsh" "curl" "git")
     install_packages true false "${dependencies[@]}"
 
     echo
