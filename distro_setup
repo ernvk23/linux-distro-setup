@@ -37,6 +37,7 @@ FEDORA_NON_WSL_PACKAGES=(
     "gnome-shell-extension-appindicator"
     "gnome-shell-extension-caffeine"
     "gnome-pomodoro"
+    "gnome-shell-extension-blur-my-shell"
 )
 
 UBUNTU_PACKAGES=(
