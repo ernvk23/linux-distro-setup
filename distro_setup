@@ -70,7 +70,10 @@ FLATPAK_PACKAGES=(
     "com.github.unrud.VideoDownloader" 
     "com.mattjakeman.ExtensionManager"
     "com.rafaelmardojai.Blanket"
-    #"md.obsidian.Obsidian"
+    "io.missioncenter.MissionCenter"
+    "com.github.wwmm.easyeffects"
+    "flathub com.microsoft.Edge"
+    "md.obsidian.Obsidian"
     #"app.drey.Warp"
 )
 
