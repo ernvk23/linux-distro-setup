@@ -25,19 +25,19 @@ DISTRO=$(. /etc/os-release && echo "$ID")
 
 FEDORA_PACKAGES=(
     "python3-pip"
-    "golang"
+    # "golang"
 )
 
 FEDORA_NON_WSL_PACKAGES=(
-    "btop"
-    "nvtop"
+    # "btop"
+    # "nvtop"
     "powertop"
     "gnome-tweaks"
     "gnome-shell-extension-dash-to-dock"
     "gnome-shell-extension-appindicator"
-    "gnome-shell-extension-caffeine"
-    "gnome-pomodoro"
-    "gnome-shell-extension-blur-my-shell"
+    # "gnome-shell-extension-caffeine"
+    # "gnome-pomodoro"
+    # "gnome-shell-extension-blur-my-shell"
 )
 
 UBUNTU_PACKAGES=(
@@ -58,8 +58,8 @@ DEBIAN_PACKAGES=(
 DEBIAN_NON_WSL_PACKAGES=(
     "gnome-tweaks"
     "gnome-shell-extension-appindicator"
-    "gnome-shell-pomodoro"
-    "gnome-shell-extension-caffeine"
+    # "gnome-shell-pomodoro"
+    # "gnome-shell-extension-caffeine"
 )
 
 FLATPAK_PACKAGES=(
@@ -67,13 +67,14 @@ FLATPAK_PACKAGES=(
     "io.github.peazip.PeaZip"
     "org.qbittorrent.qBittorrent"
     "com.github.johnfactotum.Foliate"
-    "org.videolan.VLC"
+    # "org.videolan.VLC"
+    "org.mozilla.firefox"
     "com.github.unrud.VideoDownloader" 
     "com.mattjakeman.ExtensionManager"
     "com.rafaelmardojai.Blanket"
     "io.missioncenter.MissionCenter"
-    "com.github.wwmm.easyeffects"
-    "flathub com.microsoft.Edge"
+    # "com.github.wwmm.easyeffects"
+    # "flathub com.microsoft.Edge"
     "md.obsidian.Obsidian"
     #"app.drey.Warp"
 )
@@ -164,17 +165,16 @@ alias ls='ls --color=auto'
 alias ll='ls -lah --color=auto'
 alias grep='grep --color=auto'
 alias vbat='sudo powertop --time=10'
-alias vlc='nohup flatpak run org.videolan.VLC . > /dev/null 2>&1 &'
+
 EOF
 )
 
 # Fedora-specific aliases
 if [[ $DISTRO == "fedora" ]]; then
     zshrc_content+="
-alias usys='sudo dnf update -y && flatpak update -y'
+alias upall='sudo dnf update -y && flatpak update -y'
 alias vperf='cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor'
-alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'
-alias msys='ptyxis --new-window -x "nvtop"; ptyxis --tab -x "btop"; ptyxis --tab -x \"sudo powertop --time=10\"'"
+alias cperf='echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor'"
 fi
 
 
